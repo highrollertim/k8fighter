@@ -10,7 +10,7 @@
   }
 
   function worldBox(f, box) {
-    const x = f.facing === 1 ? f.x + box.x - box.w / 2 + 14 : f.x - box.x - box.w / 2 - 14;
+    const x = f.facing === 1 ? f.x + box.x - box.w / 2 + FC.PUSH_HALF_W / 2 : f.x - box.x - box.w / 2 - FC.PUSH_HALF_W / 2;
     const y = f.y - box.y - box.h;
     return { x, y, w: box.w, h: box.h };
   }
@@ -47,6 +47,7 @@
     att.meter = Math.min(FC.MAX_METER, att.meter + mv.meterGain);
     if (blocks(def, mv)) {
       Fighter.applyBlock(def, mv, att.x);
+      att.hitstop = FC.HITSTOP; def.hitstop = FC.HITSTOP;
       return { type: 'block', move: mv, attacker: att, defender: def };
     }
     Fighter.applyHit(def, mv, att.x);
@@ -66,8 +67,8 @@
     return { type:'hit', move:mv, defender:def, projectile:true };
   }
   function require_box(p) {
-    const S = (typeof root !== 'undefined' && root.Specials) ? root.Specials
-            : (typeof require !== 'undefined' ? require('./specials.js') : null);
+    let S = (typeof root !== 'undefined' && root.Specials) ? root.Specials : null;
+    if (!S && typeof require !== 'undefined') { try { S = require('./specials.js'); } catch (e) { S = null; } }
     return S ? S.projectileBox(p) : null;
   }
 
@@ -77,7 +78,6 @@
     if (Math.abs(att.x - def.x) > FC.PUSH_HALF_W * 2 + 16) return null;
     const mv = Moves.TABLE[throwKey];
     Fighter.applyHit(def, mv, att.x);
-    def.state = 'knockdown'; def.stateFrame = 0;
     def.x = att.x + att.facing * (FC.PUSH_HALF_W * 2);
     return { type: 'throw', move: mv, attacker: att, defender: def };
   }

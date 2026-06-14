@@ -58,7 +58,7 @@
     if (f.state === 'hitstun' || f.state === 'blockstun') {
       f.stateFrame++;
       f.vx *= 0.85; f.x += f.vx;
-      const budget = f.state === 'hitstun' ? (f._stunBudget || 14) : (f._stunBudget || 9);
+      const budget = f.state === 'hitstun' ? (f._stunBudget != null ? f._stunBudget : 14) : (f._stunBudget != null ? f._stunBudget : 9);
       if (f.stateFrame >= budget) { f.state = 'idle'; f.vx = 0; }
       clampWall(f);
       return;
