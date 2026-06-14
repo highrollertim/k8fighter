@@ -73,5 +73,23 @@ b = Fighter.create('bungus', 340, -1);
 ev = Combat.tryThrow(k, b, 'kate.throw');
 ok(ev && ev.type === 'throw' && b.state === 'knockdown', 'throw connects up close');
 
+// combo counter: hitting a defender already in hitstun increments the combo
+k = Fighter.create('kate', 300, 1);
+b = Fighter.create('bungus', 360, -1);
+attackerInActive(k, 'kate.LP');
+let cev = Combat.resolve(k, b);
+ok(cev && cev.combo === 1, 'first hit is combo 1');
+// second hit while b still in hitstun -> combo 2
+k.hitThisMove = false; k.stateFrame = Moves.TABLE['kate.LP'].startup;  // re-arm same move's active window
+cev = Combat.resolve(k, b);
+ok(b.state === 'hitstun', 'defender still in hitstun for the combo');
+ok(cev && cev.combo === 2, 'second hit while in hitstun is combo 2');
+// after recovery, next hit resets to 1
+for (let i = 0; i < 30; i++) Fighter.step(b, { dir:5, jump:false, attack:null }, k);
+ok(b.state !== 'hitstun', 'defender recovered');
+k.hitThisMove = false; k.stateFrame = Moves.TABLE['kate.LP'].startup;
+cev = Combat.resolve(k, b);
+ok(cev && cev.combo === 1, 'hit after recovery resets combo to 1');
+
 if (fails) { console.error(fails + ' failed'); process.exit(1); }
 console.log('All combat tests passed.');

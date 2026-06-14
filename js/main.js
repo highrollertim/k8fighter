@@ -233,6 +233,13 @@
     const ev1 = Combat.resolve(kate, bungus);
     if (ev1) {
       ArtFX.hitSpark(ev1);
+      if (ev1.type === 'hit') {
+        if (ev1.combo >= 2) ArtFX.setCombo(ev1.combo);
+        if (ev1.move && (ev1.move.knockdown || ev1.move.damage >= 9)) {
+          // Shove camera away from attacker (kate faces +1, punch rightward pushes bungus right)
+          ArtFX.cameraPunch(kate.facing * 10, -4);
+        }
+      }
       if (window.Sound) {
         if (ev1.type === 'hit') {
           const isKick = ev1.move && /[ks]/i.test(ev1.move.key || '');
@@ -249,6 +256,12 @@
     const ev2 = Combat.resolve(bungus, kate);
     if (ev2) {
       ArtFX.hitSpark(ev2);
+      if (ev2.type === 'hit') {
+        if (ev2.combo >= 2) ArtFX.setCombo(ev2.combo);
+        if (ev2.move && (ev2.move.knockdown || ev2.move.damage >= 9)) {
+          ArtFX.cameraPunch(bungus.facing * 10, -4);
+        }
+      }
       if (window.Sound) {
         if (ev2.type === 'hit') {
           const isKick = ev2.move && /[ks]/i.test(ev2.move.key || '');
@@ -286,6 +299,12 @@
       const ev = Combat.applyProjectileHit(p, target);
       if (ev) {
         ArtFX.hitSpark(ev);
+        if (ev.type === 'hit') {
+          if (ev.combo >= 2) ArtFX.setCombo(ev.combo);
+          // Projectile hits always count as big — flash already set by hitSpark; add a punch
+          const projOwner = p.owner === 'kate' ? kate : bungus;
+          ArtFX.cameraPunch(projOwner.facing * 8, -3);
+        }
         if (window.Sound) {
           if (ev.type === 'hit') Sound.hit(false);
           else if (ev.type === 'block') Sound.block();
@@ -320,6 +339,7 @@
       ArtBungus.draw(ctx, bungus);
       ArtKate.draw(ctx, kate);
       ArtFX.drawSparks(ctx);
+      ArtFX.drawFlash(ctx, FC.VW, FC.VH);
       if (match && (state === 'fight' || state === 'end')) {
         ArtFX.drawHUD(ctx, kate, bungus, match, FC.VW, FC.VH);
         ArtFX.banner(ctx, match, FC.VW, FC.VH);

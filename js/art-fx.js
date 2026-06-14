@@ -3,16 +3,42 @@
   const FC = root.FC;
   let sparks = [];
   let shake = 0;
+  // Directional camera punch (decaying offset)
+  let punchX = 0, punchY = 0;
+  // Full-screen flash (0..1, decays to 0)
+  let flash = 0;
+  // Combo popup
+  let comboCount = 0, comboTimer = 0;
+  const COMBO_DURATION = 90; // frames to show combo
 
   function hitSpark(ev) {
     if (!ev) return;
     const d = ev.defender; if (!d) return;
-    const n = ev.type === 'block' ? 5 : 12;
+    const isBig = ev.move && (ev.move.knockdown || ev.move.damage >= 9 || ev.projectile);
+    // More sparks for heavier hits
+    const n = ev.type === 'block' ? 5 : (isBig ? 22 : 12);
     for (let i = 0; i < n; i++) {
-      sparks.push({ x: d.x, y: d.y - 60, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.6)*6,
-        life: 12 + Math.random()*8, color: ev.type === 'block' ? '#9bd4ff' : '#ffd95a' });
+      const speed = isBig ? 9 : 6;
+      sparks.push({ x: d.x, y: d.y - 60, vx: (Math.random()-0.5)*speed, vy: (Math.random()-0.75)*speed,
+        life: (isBig ? 18 : 12) + Math.random()*8, color: ev.type === 'block' ? '#9bd4ff' : (isBig ? '#ff9d3a' : '#ffd95a') });
+    }
+    // Add extra trailing sparks for big hits
+    if (ev.type !== 'block' && isBig) {
+      for (let i = 0; i < 8; i++) {
+        sparks.push({ x: d.x, y: d.y - 60, vx: (Math.random()-0.5)*3, vy: (Math.random()-0.5)*3,
+          life: 24 + Math.random()*12, color: '#ffffff' });
+      }
     }
     shake = Math.max(shake, ev.type === 'block' ? 3 : (ev.move && ev.move.knockdown ? 9 : 6));
+    // Screen flash on big hits
+    if (ev.type !== 'block' && isBig) {
+      flash = Math.max(flash, 0.45);
+    }
+  }
+
+  function cameraPunch(dx, dy) {
+    punchX = dx || 0;
+    punchY = dy || 0;
   }
 
   function step() {
@@ -20,10 +46,59 @@
     sparks = sparks.filter(s => s.life > 0);
     if (shake > 0) shake *= 0.8;
     if (shake < 0.3) shake = 0;
+    // Decay directional punch
+    punchX *= 0.75; punchY *= 0.75;
+    if (Math.abs(punchX) < 0.2) punchX = 0;
+    if (Math.abs(punchY) < 0.2) punchY = 0;
+    // Decay flash
+    if (flash > 0) { flash *= 0.72; if (flash < 0.01) flash = 0; }
+    // Decay combo timer
+    if (comboTimer > 0) comboTimer--;
   }
 
   function shakeOffset() {
-    return shake ? { x: (Math.random()-0.5)*shake*2, y: (Math.random()-0.5)*shake*2 } : { x:0, y:0 };
+    const rx = shake ? (Math.random()-0.5)*shake*2 : 0;
+    const ry = shake ? (Math.random()-0.5)*shake*2 : 0;
+    return { x: rx + punchX, y: ry + punchY };
+  }
+
+  function drawFlash(ctx, vw, vh) {
+    if (flash <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = flash;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, vw, vh);
+    ctx.restore();
+  }
+
+  function setCombo(n) {
+    comboCount = n;
+    comboTimer = COMBO_DURATION;
+  }
+
+  function drawCombo(ctx, vw) {
+    if (comboTimer <= 0 || comboCount < 2) return;
+    ctx.save();
+    const alpha = Math.min(1, comboTimer / 20);  // fade in/out at edges
+    const fadeOut = Math.min(1, comboTimer / 20);
+    const scale = 1 + Math.min(0.35, (COMBO_DURATION - comboTimer) * 0.015); // pop-in scale
+    ctx.globalAlpha = Math.min(alpha, fadeOut);
+    ctx.textAlign = 'center';
+    const cx = vw / 2;
+    const cy = 130;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.font = '900 38px "Trebuchet MS",sans-serif';
+    ctx.fillText(comboCount + ' HITS!', 3, 3);
+    // Main text, color shifts with count
+    const hue = Math.min(comboCount * 15, 60);
+    ctx.fillStyle = `hsl(${hue}, 100%, 65%)`;
+    ctx.fillText(comboCount + ' HITS!', 0, 0);
+    ctx.restore();
+    ctx.restore();
   }
 
   function drawSparks(ctx) {
@@ -43,6 +118,7 @@
   }
 
   function drawHUD(ctx, kate, bungus, match, vw, vh) {
+    drawCombo(ctx, vw);
     bar(ctx, 24, 24, 360, 24, kate.health, FC.MAX_HEALTH, '#d4ff5a', false, vw);
     bar(ctx, 24, 24, 360, 24, bungus.health, FC.MAX_HEALTH, '#c0563f', true, vw);
     bar(ctx, 24, 54, 200, 10, kate.meter, FC.MAX_METER, '#5ad4ff', false, vw);
@@ -88,5 +164,5 @@
     ctx.fillText(text, vw/2, vh/2 - 40);
   }
 
-  root.ArtFX = { hitSpark, step, shakeOffset, drawSparks, drawHUD, banner };
+  root.ArtFX = { hitSpark, step, shakeOffset, drawSparks, drawHUD, banner, drawFlash, cameraPunch, setCombo };
 })(window);

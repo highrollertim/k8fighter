@@ -50,10 +50,12 @@
       att.hitstop = FC.HITSTOP; def.hitstop = FC.HITSTOP;
       return { type: 'block', move: mv, attacker: att, defender: def };
     }
+    const comboing = (def.state === 'hitstun');
     Fighter.applyHit(def, mv, att.x);
+    def.comboCount = comboing ? (def.comboCount + 1) : 1;
     att.hitstop = mv.knockdown ? FC.HITSTOP_HEAVY : FC.HITSTOP;
     def.hitstop = att.hitstop;
-    return { type: 'hit', move: mv, attacker: att, defender: def };
+    return { type: 'hit', move: mv, attacker: att, defender: def, combo: def.comboCount };
   }
 
   function applyProjectileHit(p, def) {
@@ -63,8 +65,11 @@
     if (!box || !aabb(box, hurtbox(def))) return null;
     p.hit = true; p.dead = true;
     if (blocks(def, mv)) { Fighter.applyBlock(def, mv, p.x); return { type:'block', move:mv, defender:def, projectile:true }; }
-    Fighter.applyHit(def, mv, p.x); def.hitstop = FC.HITSTOP;
-    return { type:'hit', move:mv, defender:def, projectile:true };
+    const comboing = (def.state === 'hitstun');
+    Fighter.applyHit(def, mv, p.x);
+    def.comboCount = comboing ? (def.comboCount + 1) : 1;
+    def.hitstop = FC.HITSTOP;
+    return { type:'hit', move:mv, defender:def, projectile:true, combo: def.comboCount };
   }
   function require_box(p) {
     let S = (typeof root !== 'undefined' && root.Specials) ? root.Specials : null;
