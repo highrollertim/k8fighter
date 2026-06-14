@@ -29,40 +29,65 @@
     titleEl.classList.add('hidden'); titleEl.setAttribute('aria-hidden', 'true');
   }
 
+  // Track press timing for A/S to distinguish tap (light) vs hold (heavy)
+  const btn = { A: { down: false, frame: 0, fired: false, pending: null }, S: { down: false, frame: 0, fired: false, pending: null } };
+  function buttonAttack() {
+    for (const name of ['A', 'S']) {
+      const b = btn[name];
+      const held = input.keys[name];
+      if (held && !b.down) { b.down = true; b.frame = frame; b.fired = false; }
+      if (!held && b.down) {
+        b.down = false;
+        if (!b.fired) b.pending = { button: name, heavy: (frame - b.frame) >= FC.HEAVY_HOLD };
+      }
+      if (held && b.down && !b.fired && (frame - b.frame) >= FC.HEAVY_HOLD) {
+        b.fired = true; b.pending = { button: name, heavy: true };
+      }
+    }
+    if (input.keys.A && input.keys.S && (frame - btn.A.frame < 4 || frame - btn.S.frame < 4)) {
+      btn.A.fired = btn.S.fired = true; btn.A.pending = btn.S.pending = null;
+      return { throw: true };
+    }
+    const out = btn.A.pending || btn.S.pending || null;
+    btn.A.pending = btn.S.pending = null;
+    if (out && out.button) btn[out.button].fired = true;
+    return out;
+  }
+
   function playerIntent() {
     const dir = Input.dirFromKeys(input.arrows());
     Input.pushDir(kMotion, dir, frame);
-    let attack = null;
-    if (input.consumeEdge('A')) attack = { button: 'A', heavy: false, special: null, throw: input.keys.S };
-    else if (input.consumeEdge('S')) attack = { button: 'S', heavy: false, special: null, throw: input.keys.A };
+    const a = buttonAttack();
     const jump = input.consumeEdge('jump');
-    return { dir, jump, attack };
+    return { dir, jump, attack: a ? Object.assign({ button: 'A', heavy: false, special: null, throw: false }, a) : null };
   }
 
   function busy(f) { return f.state === 'attack' || f.state === 'hitstun' || f.state === 'knockdown' || f.state === 'blockstun'; }
 
   function applyAttack(f, intent, opp) {
     if (!intent.attack || busy(f)) return;
-    const crouch = (intent.dir === 1 || intent.dir === 2 || intent.dir === 3);
-    const air = !f.onGround;
-    let key;
-    if (air) key = intent.attack.button === 'A' ? 'kate.jP' : 'kate.jK';
-    else if (crouch) key = intent.attack.button === 'A' ? 'kate.cLP' : 'kate.cLK';
-    else key = intent.attack.button === 'A' ? 'kate.LP' : 'kate.LK';
-    if (air) { f.move = key; f.state = 'attack'; f.stateFrame = 0; f.hitThisMove = false; }
+    if (intent.attack.throw) {
+      const ev = Combat.tryThrow(f, opp, MoveSelect.throwKey(f.id));
+      if (ev && window.ArtFX) ArtFX.hitSpark(ev);
+      Fighter.start(f, MoveSelect.throwKey(f.id));
+      return;
+    }
+    const key = MoveSelect.normalKey(f, { dir: intent.dir, heavy: intent.attack.heavy, button: intent.attack.button });
+    if (!f.onGround) { f.move = key; f.state = 'attack'; f.stateFrame = 0; f.hitThisMove = false; f.vx = 0; }
     else Fighter.start(f, key);
   }
 
   function sim() {
     frame++;
     const pi = playerIntent();
-    kate.blockingLow = kate.onGround && (pi.dir === 1 || pi.dir === 3) && (kate.state === 'crouch');
     applyAttack(kate, pi, bungus);
     Fighter.step(kate, pi, bungus);
+    kate.blockingLow = kate.onGround && kate.state === 'crouch' && ((kate.facing === 1 && pi.dir === 1) || (kate.facing === -1 && pi.dir === 3));
     Fighter.step(bungus, { dir: 5, jump: false, attack: null }, kate); // dummy
-    const ev = Combat.resolve(kate, bungus);
-    if (ev) ArtFX.hitSpark(ev);
-    Combat.resolve(bungus, kate);
+    const ev1 = Combat.resolve(kate, bungus);
+    if (ev1 && window.ArtFX) ArtFX.hitSpark(ev1);
+    const ev2 = Combat.resolve(bungus, kate);
+    if (ev2 && window.ArtFX) ArtFX.hitSpark(ev2);
     if (bungus.health <= 0 || kate.health <= 0) state = 'ko';
   }
 
