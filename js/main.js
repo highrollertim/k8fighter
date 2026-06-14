@@ -54,6 +54,11 @@
   let zoomFrames = 0;
   let zoomFocusX = FC.VW / 2;
 
+  // --- Match-end delay (real rAF frames) ---
+  // After the match-winning KO cinematic fires we hold the ragdoll for this many
+  // real frames before calling showEnd(). 0 means no pending delay.
+  let endDelay = 0;
+
   // ---- Move list overlay setup ----
   const MOVES_LIST = [
     ['Move', 'Arrows'], ['Jump', 'Up / Space'], ['Crouch', 'Down'],
@@ -99,6 +104,8 @@
     // Reset cinematic state so no zoom/slowmo carries over between rounds
     timeScale = 1; slowmoFrames = 0;
     zoomFactor = 1.0; zoomFrames = 0; zoomFocusX = FC.VW / 2;
+    endDelay = 0;
+    if (window.ArtFX) ArtFX.resetCinematic();
   }
 
   function newMatch() {
@@ -189,6 +196,8 @@
           // Cinematic super activation: slow-mo + flash/vignette
           triggerSlowmo(36, 0.22);
           if (window.ArtFX) ArtFX.triggerSuperCinematic();
+          // Clear motion buffer so a buffered QCF doesn't re-fire after slow-mo (Fix 6)
+          kMotion.hist.length = 0;
         }
         startSpecial(f, sp);
         return;
@@ -232,14 +241,28 @@
         if (window.ArtFX) { ArtFX.triggerSuperCinematic(); } // flash
       }
     }
+    // Fix 1: Match-winning KO gets the full cinematic + delayed end screen.
+    // match.js jumps directly from 'fight' to 'matchEnd' (skipping 'roundEnd') so we
+    // must detect the transition here and fire everything that the round-KO block fires.
     if (match.phase === 'matchEnd' && lastPhase !== 'matchEnd') {
       if (window.Sound && match.lastWinner && match.lastWinner !== 'draw') Sound.ko();
+      if (match.lastWinner && match.lastWinner !== 'draw') {
+        triggerSlowmo(60, 0.25);
+        const loser = match.lastWinner === 'kate' ? bungus : kate;
+        zoomFocusX = loser ? loser.x : FC.VW / 2;
+        zoomFactor = 1.25;
+        zoomFrames = 60;
+        if (window.ArtFX) ArtFX.triggerSuperCinematic();
+        // Delay the end overlay so the cinematic plays out (~1.25 s at 60 fps)
+        endDelay = 75;
+      }
     }
 
     lastPhase = match.phase;
 
     if (match.phase !== 'fight') {
-      if (match.phase === 'matchEnd' && state !== 'end') showEnd();
+      // showEnd() is now called by the real-frame countdown in frameLoop, NOT here.
+      // (endDelay ticks down in frameLoop; when it reaches 0, showEnd() is called.)
       return;
     }
 
@@ -353,20 +376,29 @@
   function frameLoop(t) {
     const dt = Math.min((t - last) / 1000 || 0, 0.1); last = t;
 
-    // --- Slow-motion: update timeScale each render frame ---
+    // --- Slow-motion: update timeScale each real frame ---
     if (slowmoFrames > 0) {
       slowmoFrames--;
       timeScale = slowmoTargetScale;
-      if (slowmoFrames === 0) {
-        // Ease back to 1 — we'll lerp over subsequent frames
-        timeScale = slowmoTargetScale; // will ramp below
-      }
+      // (no dead no-op block here — lerp recovery runs in the else branch below)
     } else {
       // Lerp timeScale back toward 1 when slowmo has expired
       if (timeScale < 1) {
         timeScale += (1 - timeScale) * 0.18;
         if (timeScale > 0.99) timeScale = 1;
       }
+    }
+
+    // Fix 2: Decay screen-overlay values every real frame so they clear at wall-clock
+    // speed regardless of slow-mo factor or whether sim is paused (state==='end').
+    if (window.ArtFX) ArtFX.stepCinematic();
+
+    // Fix 1: Tick the match-end delay countdown in real frames. When it expires,
+    // show the end screen. The fighters are already frozen (sim early-returns on
+    // non-fight phases) giving us the dramatic ragdoll beat before the overlay.
+    if (endDelay > 0 && match && match.phase === 'matchEnd' && state !== 'end') {
+      endDelay--;
+      if (endDelay === 0) showEnd();
     }
 
     if (state === 'fight') { acc += dt * timeScale; let steps = 0; while (acc >= FC.DT && steps < 5) { sim(); acc -= FC.DT; steps++; } }
@@ -403,13 +435,15 @@
     // So: ox = canvas.width/2  - renderScale * zoomFocusX
     //     oy = canvas.height/2 - renderScale * (FC.VH / 2)
     // But apply shake on top.
+    // Fix 5: Apply shake offset in screen px using the BASE scale (not zoomed renderScale)
+    // so the shake amplitude stays constant and doesn't jump 25% during KO zoom.
     let ox, oy;
     if (zoomFactor > 1.001) {
-      ox = canvas.width  / 2 - renderScale * zoomFocusX + sh.x * renderScale;
-      oy = canvas.height / 2 - renderScale * (FC.VH / 2) + sh.y * renderScale;
+      ox = canvas.width  / 2 - renderScale * zoomFocusX + sh.x * baseScale;
+      oy = canvas.height / 2 - renderScale * (FC.VH / 2) + sh.y * baseScale;
     } else {
-      ox = (canvas.width  - FC.VW * renderScale) / 2 + sh.x * renderScale;
-      oy = (canvas.height - FC.VH * renderScale) / 2 + sh.y * renderScale;
+      ox = (canvas.width  - FC.VW * renderScale) / 2 + sh.x * baseScale;
+      oy = (canvas.height - FC.VH * renderScale) / 2 + sh.y * baseScale;
     }
 
     ctx.setTransform(renderScale, 0, 0, renderScale, ox, oy);
@@ -423,9 +457,11 @@
       ArtBungus.draw(ctx, bungus);
       ArtKate.draw(ctx, kate);
       ArtFX.drawSparks(ctx);
-      ArtFX.drawFlash(ctx, FC.VW, FC.VH);
+      // Fix 3: Pass physical canvas dimensions so overlays cover the full canvas
+      // (identity transform is set inside these functions before filling).
+      ArtFX.drawFlash(ctx, canvas.width, canvas.height);
       // Super cinematic overlay (vignette + flash)
-      if (ArtFX.superCinematicActive()) ArtFX.drawSuperCinematic(ctx, FC.VW, FC.VH);
+      if (ArtFX.superCinematicActive()) ArtFX.drawSuperCinematic(ctx, canvas.width, canvas.height);
       if (match && (state === 'fight' || state === 'end')) {
         ArtFX.drawHUD(ctx, kate, bungus, match, FC.VW, FC.VH);
         ArtFX.banner(ctx, match, FC.VW, FC.VH);

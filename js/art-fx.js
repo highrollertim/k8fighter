@@ -56,13 +56,24 @@
     punchX *= 0.75; punchY *= 0.75;
     if (Math.abs(punchX) < 0.2) punchX = 0;
     if (Math.abs(punchY) < 0.2) punchY = 0;
-    // Decay flash
-    if (flash > 0) { flash *= 0.72; if (flash < 0.01) flash = 0; }
     // Decay combo timer
     if (comboTimer > 0) comboTimer--;
-    // Decay super cinematic
-    if (superFlash > 0) { superFlash *= 0.78; if (superFlash < 0.01) superFlash = 0; }
-    if (superDarken > 0) { superDarken *= 0.94; if (superDarken < 0.005) superDarken = 0; }
+    // NOTE: flash, superFlash, superDarken are intentionally NOT decayed here.
+    // They are decayed in stepCinematic() which runs every real rAF frame so
+    // they recover at wall-clock speed regardless of slow-mo or paused sim.
+  }
+
+  // Decay screen-overlay values in REAL frame time (called once per rAF, not per sim step).
+  // This ensures flash/vignette clear promptly even during slow-mo or when state==='end'.
+  function stepCinematic() {
+    if (flash > 0)      { flash      *= 0.72; if (flash      < 0.01)  flash      = 0; }
+    if (superFlash > 0) { superFlash *= 0.78; if (superFlash < 0.01)  superFlash = 0; }
+    if (superDarken > 0){ superDarken *= 0.94; if (superDarken < 0.005) superDarken = 0; }
+  }
+
+  // Reset all cinematic state — call at resetRound / newMatch so nothing bleeds across rounds.
+  function resetCinematic() {
+    flash = 0; superFlash = 0; superDarken = 0;
   }
 
   function shakeOffset() {
@@ -71,12 +82,16 @@
     return { x: rx + punchX, y: ry + punchY };
   }
 
-  function drawFlash(ctx, vw, vh) {
+  // cw/ch are the PHYSICAL canvas pixel dimensions (canvas.width/height).
+  // We reset to identity so the fill covers the entire canvas regardless of the
+  // zoomed/letterboxed transform that is active when this is called.
+  function drawFlash(ctx, cw, ch) {
     if (flash <= 0) return;
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = flash;
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, vw, vh);
+    ctx.fillRect(0, 0, cw, ch);
     ctx.restore();
   }
 
@@ -88,25 +103,29 @@
 
   // Draw the super cinematic overlay: dark vignette bars + bright white flash.
   // Called from main render during the cinematic window (while superDarken or superFlash > 0).
-  function drawSuperCinematic(ctx, vw, vh) {
+  // cw/ch are the PHYSICAL canvas pixel dimensions so the fill covers the entire canvas
+  // regardless of the zoomed/letterboxed transform that may be active.
+  function drawSuperCinematic(ctx, cw, ch) {
     if (superDarken <= 0 && superFlash <= 0) return;
     ctx.save();
+    // Reset to identity so overlays cover the full physical canvas, not just the virtual rect.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     // Dark vignette overlay
     if (superDarken > 0) {
       ctx.globalAlpha = superDarken * 0.55;
       ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, vw, vh);
+      ctx.fillRect(0, 0, cw, ch);
       // Letterbox bars (top/bottom) — extra dramatic darkening
       ctx.globalAlpha = superDarken * 0.6;
-      const barH = Math.round(vh * 0.12);
-      ctx.fillRect(0, 0, vw, barH);
-      ctx.fillRect(0, vh - barH, vw, barH);
+      const barH = Math.round(ch * 0.12);
+      ctx.fillRect(0, 0, cw, barH);
+      ctx.fillRect(0, ch - barH, cw, barH);
     }
     // White flash on top
     if (superFlash > 0) {
       ctx.globalAlpha = superFlash * 0.85;
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, vw, vh);
+      ctx.fillRect(0, 0, cw, ch);
     }
     ctx.restore();
   }
@@ -208,6 +227,6 @@
     ctx.fillText(text, vw/2, vh/2 - 40);
   }
 
-  root.ArtFX = { hitSpark, step, shakeOffset, drawSparks, drawHUD, banner, drawFlash, cameraPunch, setCombo,
+  root.ArtFX = { hitSpark, step, stepCinematic, resetCinematic, shakeOffset, drawSparks, drawHUD, banner, drawFlash, cameraPunch, setCombo,
     triggerSuperCinematic, drawSuperCinematic, superCinematicActive };
 })(window);
