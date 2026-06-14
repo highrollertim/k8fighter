@@ -3,8 +3,8 @@
   'use strict';
 
   const DIFFICULTY = {
-    reactFrames: 12, blockProb: 0.35, antiAirProb: 0.30, aggression: 0.42,
-    specialProb: 0.18, throwProb: 0.12, slamProb: 0.15, idleJitter: 0.08,
+    reactFrames: 7, blockProb: 0.60, antiAirProb: 0.58, aggression: 0.55,
+    specialProb: 0.24, throwProb: 0.14, slamProb: 0.15, idleJitter: 0.08,
   };
 
   function towardDir(b, k, down) {
@@ -26,6 +26,13 @@
     if (!k.onGround && dist < 120) {
       if (rng() < diff.antiAirProb) { out.attack = { button: 'A', heavy: true }; return out; }
       out.dir = awayDir(b, k); return out;
+    }
+
+    // Whiff-punish: Kate is in attack recovery (past startup+active, ~frame 6+) — punish her
+    // This takes priority over blocking because she's already committed and can't hit us
+    if (k.state === 'attack' && k.stateFrame > 6 && dist < 95 && rng() < 0.7) {
+      out.attack = { button: 'A', heavy: true };
+      return out;
     }
 
     if (kateAttacking(k) && dist < 110 && rng() < diff.blockProb) {
