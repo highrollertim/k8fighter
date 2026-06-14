@@ -58,14 +58,14 @@
     if (f.state === 'hitstun' || f.state === 'blockstun') {
       f.stateFrame++;
       f.vx *= 0.85; f.x += f.vx;
-      const budget = f._stunBudget || 14;
+      const budget = f.state === 'hitstun' ? (f._stunBudget || 14) : (f._stunBudget || 9);
       if (f.stateFrame >= budget) { f.state = 'idle'; f.vx = 0; }
       clampWall(f);
       return;
     }
     if (f.state === 'knockdown') {
       f.stateFrame++;
-      if (!f.onGround) { f.vy += FC.GRAVITY; f.y += f.vy; if (f.y >= FC.FLOOR_Y) { f.y = FC.FLOOR_Y; f.vy = 0; f.onGround = true; } }
+      if (!f.onGround) { f.vy += FC.GRAVITY; f.y += f.vy; if (f.y >= FC.FLOOR_Y) { f.y = FC.FLOOR_Y; f.vy = 0; f.onGround = true; f.stateFrame = 0; } }
       f.x += f.vx; f.vx *= 0.9;
       if (f.onGround && f.stateFrame >= 28) { f.state = 'idle'; f.vx = 0; }
       clampWall(f);
@@ -94,7 +94,7 @@
       f.state = 'jump'; f.stateFrame = 0;
       return;
     }
-    if (down) { f.state = 'crouch'; f.stateFrame++; f.vx = 0; return; }
+    if (down) { f.stateFrame = (f.state === 'crouch') ? f.stateFrame + 1 : 0; f.state = 'crouch'; f.vx = 0; return; }
     if (towardOpp) {
       f.state = 'walkF'; f.x += fwd * FC.WALK_SPEED;
     } else if (awayOpp) {
@@ -119,6 +119,7 @@
       const push = (min - Math.abs(dx)) / 2;
       const s = dx >= 0 ? 1 : -1;
       f.x += s * push;
+      opp.x -= s * push;
     }
   }
 
