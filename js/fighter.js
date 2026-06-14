@@ -48,6 +48,7 @@
     if (f.state === 'attack') {
       const mv = Moves.TABLE[f.move];
       f.stateFrame++;
+      if (f.stateFrame === mv.startup && mv.lunge) { f.vx = f.facing * mv.lunge; }
       f.vx *= 0.8;
       f.x += f.vx;
       if (f.stateFrame >= mv.startup + mv.active + mv.recovery) {

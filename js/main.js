@@ -230,7 +230,7 @@
       ArtFX.hitSpark(ev1);
       if (window.Sound) {
         if (ev1.type === 'hit') {
-          const isKick = ev1.move && /[KS]/.test(ev1.move.key || '');
+          const isKick = ev1.move && /[ks]/i.test(ev1.move.key || '');
           if (isKick) Sound.kick(ev1.move && ev1.move.knockdown);
           else Sound.hit(ev1.move && ev1.move.knockdown);
         } else if (ev1.type === 'block') {
@@ -246,7 +246,7 @@
       ArtFX.hitSpark(ev2);
       if (window.Sound) {
         if (ev2.type === 'hit') {
-          const isKick = ev2.move && /[KS]/.test(ev2.move.key || '');
+          const isKick = ev2.move && /[ks]/i.test(ev2.move.key || '');
           if (isKick) Sound.kick(ev2.move && ev2.move.knockdown);
           else Sound.hit(ev2.move && ev2.move.knockdown);
         } else if (ev2.type === 'block') {
