@@ -32,6 +32,7 @@
   let match;
   let lastPhase = null;
   let muted = false;
+  let lastVoiceFrame = -999;
 
   // ---- Move list overlay setup ----
   const MOVES_LIST = [
@@ -64,6 +65,7 @@
     endTitleEl.textContent = match.matchWinner === 'kate' ? 'YOU WIN' : 'DEFEATED';
     endMsgEl.textContent = match.matchWinner === 'kate' ? 'Bungus has been composted.' : 'The fungus spreads...';
     showOverlay(endEl);
+    if (window.Voice && match.matchWinner === 'kate') Voice.say('win');
   }
 
   function resetRound() {
@@ -181,6 +183,7 @@
     // Ring bell and restart music when fight phase begins (each round)
     if (match.phase === 'fight' && lastPhase === 'roundStart') {
       if (window.Sound) { Sound.startMusic(); Sound.bell(); }
+      if (window.Voice) Voice.say('roundStart');
     }
 
     // KO sound fires once on transition into roundEnd (when there is a winner, not timeout draw)
@@ -232,6 +235,9 @@
           Sound.block();
         }
       }
+      if (window.Voice && ev1.type === 'hit' && ev1.move && ev1.move.knockdown && frame - lastVoiceFrame > 120) {
+        Voice.say('bigHit'); lastVoiceFrame = frame;
+      }
     }
     const ev2 = Combat.resolve(bungus, kate);
     if (ev2) {
@@ -244,6 +250,9 @@
         } else if (ev2.type === 'block') {
           Sound.block();
         }
+      }
+      if (window.Voice && ev2.type === 'hit' && ev2.move && ev2.move.knockdown && frame - lastVoiceFrame > 120 && Math.random() < 0.5) {
+        Voice.say('takeHit'); lastVoiceFrame = frame;
       }
     }
 
