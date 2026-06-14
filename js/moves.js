@@ -10,8 +10,8 @@
     'kate.HK': { key:'kate.HK', startup:9, active:4, recovery:18, damage:11, hitstun:22, blockstun:15, hitKB:7, blockPush:5, height:'mid', knockdown:true, meterGain:8, chip:0, cancelable:false, box:{x:46,y:60,w:52,h:24}, hits:1 },
     'kate.cLP': { key:'kate.cLP', startup:3, active:3, recovery:8, damage:4, hitstun:13, blockstun:9, hitKB:2, blockPush:2, height:'mid', knockdown:false, meterGain:4, chip:0, cancelable:true, box:{x:32,y:40,w:34,h:16}, hits:1 },
     'kate.cLK': { key:'kate.cLK', startup:4, active:3, recovery:10, damage:5, hitstun:13, blockstun:9, hitKB:2, blockPush:2, height:'low', knockdown:false, meterGain:4, chip:0, cancelable:true, box:{x:38,y:14,w:46,h:14}, hits:1 },
-    'kate.jP': { key:'kate.jP', startup:4, active:6, recovery:4, damage:7, hitstun:16, blockstun:11, hitKB:3, blockPush:2, height:'overhead', knockdown:false, meterGain:5, chip:0, cancelable:false, box:{x:30,y:60,w:40,h:30}, hits:1 },
-    'kate.jK': { key:'kate.jK', startup:5, active:8, recovery:5, damage:8, hitstun:16, blockstun:11, hitKB:4, blockPush:3, height:'overhead', knockdown:false, meterGain:5, chip:0, cancelable:false, box:{x:36,y:40,w:46,h:34}, hits:1 },
+    'kate.jP': { key:'kate.jP', startup:3, active:8, recovery:4, damage:7, hitstun:16, blockstun:11, hitKB:3, blockPush:2, height:'overhead', knockdown:false, meterGain:5, chip:0, cancelable:false, box:{x:20,y:8,w:60,h:56}, hits:1 },
+    'kate.jK': { key:'kate.jK', startup:3, active:10, recovery:5, damage:8, hitstun:16, blockstun:11, hitKB:4, blockPush:3, height:'overhead', knockdown:false, meterGain:5, chip:0, cancelable:false, box:{x:18,y:6,w:72,h:68}, hits:1 },
     'kate.throw': { key:'kate.throw', startup:2, active:2, recovery:20, damage:12, hitstun:0, blockstun:0, hitKB:9, blockPush:0, height:'throw', knockdown:true, meterGain:6, chip:0, cancelable:false, box:null, hits:1 },
 
     // --- Bungus normals ---

@@ -58,5 +58,21 @@ ok(k.health < FC.MAX_HEALTH, 'applyHit reduces health');
 for (let i = 0; i < Moves.TABLE['kate.LP'].hitstun + 1; i++) Fighter.step(k, NEUTRAL, b);
 ok(k.state === 'idle', 'recovers from hitstun');
 
+// air attack keeps the jump arc (does not freeze midair) and lands
+k = Fighter.create('kate', 300, 1);
+b = Fighter.create('bungus', 600, -1);
+Fighter.step(k, { dir: 8, jump: true, attack: null }, b);   // jump
+ok(!k.onGround, 'airborne after jump');
+const yA = k.y;
+// start an air attack while rising
+k.move = 'kate.jK'; k.state = 'attack'; k.stateFrame = 0; k.hitThisMove = false;
+Fighter.step(k, NEUTRAL, b);
+ok(k.y !== yA, 'air attack still moves vertically (gravity applies, not frozen)');
+// continue until landing
+let landed = false;
+for (let i = 0; i < 200; i++) { Fighter.step(k, NEUTRAL, b); if (k.onGround) { landed = true; break; } }
+ok(landed && k.y === FC.FLOOR_Y, 'air attack lands back on the floor');
+ok(k.state !== 'attack', 'air attack ends on landing (not stuck in attack)');
+
 if (fails) { console.error(fails + ' failed'); process.exit(1); }
 console.log('All fighter tests passed.');

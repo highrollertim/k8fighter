@@ -34,7 +34,8 @@
     if(f.state==='attack'&&m){
       if(m.indexOf('LP')>=0||m.indexOf('HP')>=0||m==='kate.cLP') return Object.assign(base,{punch:1,armF:[46+(m.indexOf('H')>=0?12:0),74]});
       if(m.indexOf('LK')>=0||m.indexOf('HK')>=0||m==='kate.cLK') return Object.assign(base,{kick:1,legF:[52,30]});
-      if(m==='kate.jP'||m==='kate.jK') return Object.assign(base,{hipY:60,armF:[34,86],legF:[40,26]});
+      if(m==='kate.jK') return Object.assign(base,{hipY:60,lean:14,legF:[62,38],legB:[-8,30],armF:[18,82],armB:[-6,76]});
+      if(m==='kate.jP') return Object.assign(base,{hipY:58,lean:10,armF:[52,58],legF:[14,20],legB:[-10,16]});
       if(m==='kate.fireball') return Object.assign(base,{armF:[40,66],lean:4});
       if(m==='kate.uppercut') return Object.assign(base,{punch:1,armF:[30,110],lean:8,hipY:64});
       if(m==='kate.spinkick') return Object.assign(base,{kick:1,legF:[54,46],lean:6});
@@ -86,9 +87,18 @@
     // Clamp to the expected range
     const t = (vy - JUMP_VY) / (JUMP_VY_LAND - JUMP_VY); // 0 → 1 over the jump
     const tc = Math.min(1, Math.max(0, t));
-    // Forward somersault: forward direction rotates in the direction of facing.
-    // One full rotation (2π). Use eased curve for snappier feel at apex.
-    return f.facing * tc * Math.PI * 2;
+    // Spin direction follows horizontal movement:
+    //   vx > 0.5  → roll forward (positive rotation)
+    //   vx < -0.5 → backflip (negative rotation)
+    //   near-zero → gentle tuck, max ~0.4 turn (no full spin)
+    const vx = (typeof f.vx === 'number') ? f.vx : 0;
+    if (Math.abs(vx) < 0.5) {
+      // Straight-up jump: gentle partial tuck, peak at apex, return upright
+      const tuck = Math.sin(tc * Math.PI); // 0→1→0 over the jump
+      return tuck * 0.4; // small lean, not a full spin
+    }
+    const spinDir = vx > 0 ? 1 : -1;
+    return spinDir * tc * Math.PI * 2;
   }
 
   // Tuck factor: 0 = full tuck (mid-flip), 1 = full extension (launch/land)
@@ -205,8 +215,9 @@
     }
 
     // --- Determine if we should apply flip rotation ---
+    // Air attacks: draw upright in committed pose, no somersault rotation.
     const doFlip = airborne && !isJumpAttack(f);
-    const doJumpAttackFlip = airborne && isJumpAttack(f);
+    const doJumpAttackFlip = false; // air attacks are now drawn upright (no spin)
 
     // --- Compute figure center Y for rotation pivot ---
     // Body center is approximately halfway between feet (f.y) and head (f.y - headY).

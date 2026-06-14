@@ -49,10 +49,18 @@
       const mv = Moves.TABLE[f.move];
       f.stateFrame++;
       if (f.stateFrame === mv.startup && mv.lunge) { f.vx = f.facing * mv.lunge; }
-      f.vx *= 0.8;
-      f.x += f.vx;
-      if (f.stateFrame >= mv.startup + mv.active + mv.recovery) {
-        f.state = 'idle'; f.move = null;
+      if (!f.onGround) {
+        // air attack: keep the jump arc; stay out until landing
+        f.vy += FC.GRAVITY; f.y += f.vy; f.x += f.vx;
+        if (f.y >= FC.FLOOR_Y) {
+          f.y = FC.FLOOR_Y; f.vy = 0; f.vx = 0; f.onGround = true;
+          f.state = 'idle'; f.move = null;
+        }
+      } else {
+        f.vx *= 0.8; f.x += f.vx;
+        if (f.stateFrame >= mv.startup + mv.active + mv.recovery) {
+          f.state = 'idle'; f.move = null;
+        }
       }
       clampWall(f);
       return;
