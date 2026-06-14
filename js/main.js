@@ -42,7 +42,6 @@
     ['Block', 'hold Away (crouch for lows)'], ['Throw', 'A + S'],
     ['Fireball', 'D  (or ↓↘→ + A)'],
     ['Uppercut', 'F  (or →↓↘ + A)'],
-    ['Spin Kick', 'E  (or ↓↙← + S)'],
     ['Super (full meter)', 'W  (or QCF×2 + A)'],
   ];
   const moveListEl = document.getElementById('moveList');
@@ -127,7 +126,6 @@
     let special = null;
     if (input.consumeEdge('spFire')) special = 'kate.fireball';
     else if (input.consumeEdge('spUpper')) special = 'kate.uppercut';
-    else if (input.consumeEdge('spSpin')) special = 'kate.spinkick';
     else if (input.consumeEdge('spSuper')) special = 'kate.super';
     if (special) return { dir, jump, attack: { button: 'A', heavy: false, special, throw: false } };
     return { dir, jump, attack: a ? Object.assign({ button: 'A', heavy: false, special: null, throw: false }, a) : null };

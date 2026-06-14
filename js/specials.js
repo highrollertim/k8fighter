@@ -11,7 +11,6 @@
     { key: 'kate.super', motion: [2,3,6,2,3,6], button: 'A', super: true },
     { key: 'kate.fireball', motion: [2,3,6], button: 'A' },
     { key: 'kate.uppercut', motion: [6,2,3], button: 'A' },
-    { key: 'kate.spinkick', motion: [2,1,4], button: 'S' },
   ];
 
   function detect(ms, button, meterFull, frame, facing) {

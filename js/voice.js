@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
   const LINES = {
-    roundStart: ["Okay fungus boy, let's go.", "You're about to get deleted, and not by AI.", "Ugh, you smell like a wet basement."],
+    roundStart: ["Okay fungus girl, let's go.", "You're about to get deleted, and not by AI.", "Ugh, you smell like a wet basement."],
     bigHit: ["Stand on business!", "That's for the spores!", "No cap, you're done."],
     win: ["G G. Touch grass, actually don't, you'll infect it.", "And THAT is how Kate does it."],
     takeHit: ["Gross, gross, GROSS.", "Ew, ew, ew!"],

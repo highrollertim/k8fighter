@@ -51,7 +51,16 @@
     ko(){ if(!ctx) return; this.stopMusic(); const t=ctx.currentTime; nz({t,dur:0.4,gain:0.4,filt:'lowpass',freq:500});
       [330,262,196,131].forEach((f,i)=>tone({freq:f,type:'sawtooth',t:t+0.12*i,dur:0.3,gain:0.2,cut:1400})); },
     bell(){ if(!ctx) return; const t=ctx.currentTime; [880,1320].forEach((f,i)=>tone({freq:f,type:'square',t:t+i*0.06,dur:0.3,gain:0.12,cut:3000})); },
-    super(){ if(!ctx) return; const t=ctx.currentTime; for(let i=0;i<6;i++) tone({freq:300+i*120,type:'square',t:t+i*0.05,dur:0.12,gain:0.1,cut:2600}); },
+    super(){ if(!ctx) return; const t=ctx.currentTime;
+      // Low sawtooth impact sweep: 200→50 Hz over 0.3s
+      tone({freq:200,slideTo:50,type:'sawtooth',t,dur:0.3,gain:0.28,cut:800});
+      // Noise thud underneath the sweep
+      nz({t,dur:0.18,gain:0.22,filt:'lowpass',freq:400});
+      // 8-note rising square arp starting at t+0.1, spaced 0.08s each
+      const NOTES=[260,320,390,460,540,620,740,900];
+      NOTES.forEach((f,i)=>tone({freq:f,type:'square',t:t+0.1+i*0.08,dur:0.14,gain:0.13,cut:2800}));
+      // Final high accent sting
+      tone({freq:1200,slideTo:900,type:'square',t:t+0.76,dur:0.14,gain:0.16,cut:3600}); },
   };
   root.Sound = API;
 })(window);

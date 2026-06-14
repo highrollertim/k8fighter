@@ -61,7 +61,7 @@
       ctx.font = '600 12px "Trebuchet MS",sans-serif';
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'left';
-      ctx.fillText('D Fireball   F Uppercut   E Spin Kick   W Super', 24, vh - 16);
+      ctx.fillText('D Fireball   F Uppercut   W Super', 24, vh - 16);
       ctx.restore();
     }
     for (let i = 0; i < FC.ROUNDS_TO_WIN; i++) {

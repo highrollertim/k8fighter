@@ -38,7 +38,6 @@
       if(m==='kate.jP') return Object.assign(base,{hipY:58,lean:10,armF:[52,58],legF:[14,20],legB:[-10,16]});
       if(m==='kate.fireball') return Object.assign(base,{armF:[40,66],lean:4});
       if(m==='kate.uppercut') return Object.assign(base,{punch:1,armF:[30,110],lean:8,hipY:64});
-      if(m==='kate.spinkick') return Object.assign(base,{kick:1,legF:[54,46],lean:6});
       if(m==='kate.super') return Object.assign(base,{punch:1,armF:[50,80],lean:6});
       if(m==='kate.throw') return Object.assign(base,{armF:[34,74],armB:[20,72]});
     }

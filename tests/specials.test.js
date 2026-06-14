@@ -10,7 +10,7 @@ ok(Specials.detect(ms, 'A', false, 2, 1) === 'kate.fireball', 'QCF+A = fireball'
 ms = feed([6, 2, 3]);
 ok(Specials.detect(ms, 'A', false, 2, 1) === 'kate.uppercut', 'DP+A = uppercut');
 ms = feed([2, 1, 4]);
-ok(Specials.detect(ms, 'S', false, 2, 1) === 'kate.spinkick', 'QCB+S = spinkick');
+ok(Specials.detect(ms, 'S', false, 2, 1) === null, 'spin kick removed: QCB+S maps to no special');
 ms = feed([2, 3, 6, 2, 3, 6]);
 ok(Specials.detect(ms, 'A', true, 5, 1) === 'kate.super', 'double-QCF+A (meter) = super');
 ok(Specials.detect(ms, 'A', false, 5, 1) === 'kate.fireball', 'double-QCF+A without meter falls back to fireball');
