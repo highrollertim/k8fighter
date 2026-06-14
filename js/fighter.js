@@ -8,6 +8,7 @@
     return {
       id, x, y: FC.FLOOR_Y, vx: 0, vy: 0, facing, onGround: true,
       state: 'idle', stateFrame: 0, move: null, hitThisMove: false,
+      blockingLow: false,
       health: FC.MAX_HEALTH, meter: 0, comboCount: 0, hitstop: 0,
     };
   }
