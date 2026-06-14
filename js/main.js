@@ -23,6 +23,7 @@
   window.addEventListener('resize', resize); resize();
 
   let state = 'title';
+  let stageIndex = 0;
   let kate, bungus;
   const kMotion = Input.createMotion();
   let frame = 0;
@@ -81,6 +82,7 @@
 
   function newMatch() {
     match = Match.create();
+    stageIndex = Math.floor(Math.random() * ArtStages.COUNT);
     lastPhase = null;
     resetRound();
     hideOverlay(titleEl);
@@ -303,7 +305,7 @@
     const ox = (canvas.width - FC.VW * scale) / 2 + sh.x * scale;
     const oy = (canvas.height - FC.VH * scale) / 2 + sh.y * scale;
     ctx.setTransform(scale, 0, 0, scale, ox, oy);
-    ArtStages.draw(ctx, 0, FC.VW, FC.VH);
+    ArtStages.draw(ctx, stageIndex, FC.VW, FC.VH, performance.now() * 0.06);
     if (kate && bungus) {
       // Draw projectiles behind fighters
       for (const p of projectiles) {
