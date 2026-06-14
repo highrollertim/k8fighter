@@ -119,18 +119,6 @@
     return f.state === 'attack' && (f.move === 'kate.jP' || f.move === 'kate.jK');
   }
 
-  // For jump attacks: only spin during the rising phase (vy < 0), then hold.
-  function jumpAttackFlipAngle(f) {
-    const vy = (typeof f.vy === 'number') ? f.vy : 0;
-    if (vy >= 0) {
-      // Descending — freeze at top of arc (vy=0 maps to t=0.5 → angle=π)
-      return f.facing * Math.PI;
-    }
-    const t = (vy - JUMP_VY) / (0 - JUMP_VY); // 0 → 1 over rising portion
-    const tc = Math.min(1, Math.max(0, t));
-    return f.facing * tc * Math.PI;
-  }
-
   // --- Motion streak helper ---
   // Draws a faint ghost echo of the front arm/leg at a small offset behind motion.
   function drawStreaks(ctx, f, p) {
@@ -217,7 +205,6 @@
     // --- Determine if we should apply flip rotation ---
     // Air attacks: draw upright in committed pose, no somersault rotation.
     const doFlip = airborne && !isJumpAttack(f);
-    const doJumpAttackFlip = false; // air attacks are now drawn upright (no spin)
 
     // --- Compute figure center Y for rotation pivot ---
     // Body center is approximately halfway between feet (f.y) and head (f.y - headY).
@@ -247,14 +234,6 @@
       ctx.translate(-pivotX, -pivotY);
       // Draw the tucked figure (offset toward center = reduce limb extension)
       drawFigure(ctx, f, p, fc, tuck);
-      ctx.restore();
-    } else if (doJumpAttackFlip) {
-      const angle = jumpAttackFlipAngle(f);
-      ctx.save();
-      ctx.translate(pivotX, pivotY);
-      ctx.rotate(angle);
-      ctx.translate(-pivotX, -pivotY);
-      drawFigure(ctx, f, p, fc, 0); // no tuck during attack
       ctx.restore();
     } else {
       drawFigure(ctx, f, p, fc, 0);

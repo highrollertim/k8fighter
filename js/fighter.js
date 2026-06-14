@@ -67,7 +67,12 @@
     }
     if (f.state === 'hitstun' || f.state === 'blockstun') {
       f.stateFrame++;
-      f.vx *= 0.85; f.x += f.vx;
+      if (!f.onGround) {
+        f.vy += FC.GRAVITY; f.y += f.vy; f.x += f.vx; f.vx *= 0.99;
+        if (f.y >= FC.FLOOR_Y) { f.y = FC.FLOOR_Y; f.vy = 0; f.onGround = true; }
+      } else {
+        f.vx *= 0.85; f.x += f.vx;
+      }
       const budget = f.state === 'hitstun' ? (f._stunBudget != null ? f._stunBudget : 14) : (f._stunBudget != null ? f._stunBudget : 9);
       if (f.stateFrame >= budget) { f.state = 'idle'; f.vx = 0; }
       clampWall(f);
