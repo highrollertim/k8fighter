@@ -40,10 +40,10 @@
     ['Move', 'Arrows'], ['Jump', 'Up / Space'], ['Crouch', 'Down'],
     ['Punch (light/heavy)', 'A tap / hold'], ['Kick (light/heavy)', 'S tap / hold'],
     ['Block', 'hold Away (crouch for lows)'], ['Throw', 'A + S'],
-    ['Fireball', 'Down, Down-Forward, Forward + A'],
-    ['Uppercut', 'Forward, Down, Down-Forward + A'],
-    ['Spin Kick', 'Down, Down-Back, Back + S'],
-    ['Super (full meter)', 'QCF, QCF + A'],
+    ['Fireball', 'D  (or ↓↘→ + A)'],
+    ['Uppercut', 'F  (or →↓↘ + A)'],
+    ['Spin Kick', 'E  (or ↓↙← + S)'],
+    ['Super (full meter)', 'W  (or QCF×2 + A)'],
   ];
   const moveListEl = document.getElementById('moveList');
   for (const [name, keys] of MOVES_LIST) {
@@ -123,6 +123,13 @@
     Input.pushDir(kMotion, dir, frame);
     const a = buttonAttack();
     const jump = input.consumeEdge('jump');
+    // Easy special shortcut keys (motions still work via applyAttack's detect path)
+    let special = null;
+    if (input.consumeEdge('spFire')) special = 'kate.fireball';
+    else if (input.consumeEdge('spUpper')) special = 'kate.uppercut';
+    else if (input.consumeEdge('spSpin')) special = 'kate.spinkick';
+    else if (input.consumeEdge('spSuper')) special = 'kate.super';
+    if (special) return { dir, jump, attack: { button: 'A', heavy: false, special, throw: false } };
     return { dir, jump, attack: a ? Object.assign({ button: 'A', heavy: false, special: null, throw: false }, a) : null };
   }
 
@@ -316,7 +323,7 @@
       ArtKate.draw(ctx, kate);
       ArtFX.drawSparks(ctx);
       if (match && (state === 'fight' || state === 'end')) {
-        ArtFX.drawHUD(ctx, kate, bungus, match, FC.VW);
+        ArtFX.drawHUD(ctx, kate, bungus, match, FC.VW, FC.VH);
         ArtFX.banner(ctx, match, FC.VW, FC.VH);
       }
     }

@@ -42,14 +42,28 @@
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(bx, y, w, h);
   }
 
-  function drawHUD(ctx, kate, bungus, match, vw) {
+  function drawHUD(ctx, kate, bungus, match, vw, vh) {
     bar(ctx, 24, 24, 360, 24, kate.health, FC.MAX_HEALTH, '#d4ff5a', false, vw);
     bar(ctx, 24, 24, 360, 24, bungus.health, FC.MAX_HEALTH, '#c0563f', true, vw);
     bar(ctx, 24, 54, 200, 10, kate.meter, FC.MAX_METER, '#5ad4ff', false, vw);
     bar(ctx, 24, 54, 200, 10, bungus.meter, FC.MAX_METER, '#d4a25a', true, vw);
+    // SUPER label under each meter bar
+    ctx.font = '700 10px "Trebuchet MS",sans-serif';
+    ctx.fillStyle = '#9fe'; ctx.textAlign = 'left'; ctx.fillText('SUPER', 24, 74);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.textAlign = 'right'; ctx.fillText('SUPER', vw - 24, 74);
     ctx.fillStyle = '#fff'; ctx.font = '700 16px "Trebuchet MS",sans-serif';
     ctx.textAlign = 'left'; ctx.fillText('KATE', 24, 84);
     ctx.textAlign = 'right'; ctx.fillText('BUNGUS', vw - 24, 84);
+    // Specials hint at bottom of play area
+    if (vh) {
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.font = '600 12px "Trebuchet MS",sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'left';
+      ctx.fillText('D Fireball   F Uppercut   E Spin Kick   W Super', 24, vh - 16);
+      ctx.restore();
+    }
     for (let i = 0; i < FC.ROUNDS_TO_WIN; i++) {
       ctx.fillStyle = i < match.wins.kate ? '#d4ff5a' : 'rgba(255,255,255,0.25)';
       ctx.beginPath(); ctx.arc(396 + i*18, 36, 6, 0, Math.PI*2); ctx.fill();

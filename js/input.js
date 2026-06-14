@@ -48,10 +48,11 @@
     const MAP = {
       ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
       KeyA: 'A', KeyS: 'S', Space: 'jump', Enter: 'enter', KeyH: 'help', Escape: 'esc',
+      KeyD: 'spFire', KeyF: 'spUpper', KeyE: 'spSpin', KeyW: 'spSuper',
     };
     target.addEventListener('keydown', (e) => {
       const name = MAP[e.code]; if (!name) return;
-      if (['left','right','up','down','jump','enter','help','esc'].includes(name)) e.preventDefault();
+      if (['left','right','up','down','jump','enter','help','esc','spFire','spUpper','spSpin','spSuper'].includes(name)) e.preventDefault();
       if (!keys[name]) edges[name] = true;     // rising edge
       keys[name] = true;
     });
