@@ -3,7 +3,7 @@
   'use strict';
 
   const DIFFICULTY = {
-    reactFrames: 8, blockProb: 0.55, antiAirProb: 0.45, aggression: 0.5,
+    reactFrames: 12, blockProb: 0.35, antiAirProb: 0.30, aggression: 0.42,
     specialProb: 0.18, throwProb: 0.12, slamProb: 0.15, idleJitter: 0.08,
   };
 
