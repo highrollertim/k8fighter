@@ -1,11 +1,10 @@
 // js/bungus-ai.js — reactive opponent AI. Pure decision fn. Dual export.
 (function (root) {
   'use strict';
-  const FC = (typeof module !== 'undefined') ? require('./constants.js') : root.FC;
 
   const DIFFICULTY = {
     reactFrames: 8, blockProb: 0.55, antiAirProb: 0.45, aggression: 0.5,
-    specialProb: 0.18, throwProb: 0.12, idleJitter: 0.08,
+    specialProb: 0.18, throwProb: 0.12, slamProb: 0.15, idleJitter: 0.08,
   };
 
   function towardDir(b, k, down) {
@@ -30,13 +29,15 @@
     }
 
     if (kateAttacking(k) && dist < 110 && rng() < diff.blockProb) {
-      out.dir = awayDir(b, k);
+      out.dir = (k.x >= b.x) ? 1 : 3;   // down-away = crouch-block, covers lows + mids
       return out;
     }
 
     if (inRange) {
-      if (close && rng() < diff.throwProb && (k.state === 'block' || k.state === 'blockstun' || k.state === 'crouch')) {
-        out.attack = { throw: true }; return out;
+      if (close && (k.state === 'block' || k.state === 'blockstun' || k.state === 'crouch')) {
+        const r = rng();
+        if (r < diff.throwProb) { out.attack = { throw: true }; return out; }
+        if (r < diff.throwProb + diff.slamProb) { out.attack = { button: 'A', special: 'bungus.slam' }; return out; }
       }
       if (rng() < diff.aggression) {
         if (rng() < diff.specialProb) out.attack = { button: 'A', special: 'bungus.bite' };

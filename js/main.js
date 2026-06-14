@@ -120,7 +120,7 @@
     Fighter.step(kate, pi, bungus);
     kate.blockingLow = kate.onGround && kate.state === 'crouch' && ((kate.facing === 1 && pi.dir === 1) || (kate.facing === -1 && pi.dir === 3));
     // Bungus AI (perception delay; attack consumed once)
-    if (aiHold <= 0) { aiDecision = BungusAI.decide(bungus, kate, Math.random, BungusAI.DIFFICULTY, frame); aiHold = BungusAI.DIFFICULTY.reactFrames; }
+    if (aiHold <= 0) { aiDecision = BungusAI.decide(bungus, kate, Math.random, BungusAI.DIFFICULTY, frame); aiHold = BungusAI.DIFFICULTY.reactFrames - 1; }
     else { aiHold--; }
     const bi = { dir: aiDecision.dir, jump: aiDecision.jump, attack: aiDecision.attack };
     aiDecision.attack = null;        // consume the attack so it isn't re-applied each held frame
