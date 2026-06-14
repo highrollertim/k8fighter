@@ -85,7 +85,8 @@
     hideOverlay(endEl);
     hideOverlay(movesEl);
     state = 'fight';
-    if (window.Sound) { Sound.startMusic(); Sound.bell(); }
+    // Resume audio on the Enter gesture; the bell rings at the FIGHT! transition (sim).
+    if (window.Sound) Sound.startMusic();
   }
 
   // Track press timing for A/S to distinguish tap (light) vs hold (heavy)
