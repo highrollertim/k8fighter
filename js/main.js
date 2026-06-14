@@ -21,10 +21,12 @@
   let kate, bungus;
   const kMotion = Input.createMotion();
   let frame = 0;
+  let projectiles = [];
 
   function newMatch() {
     kate = Fighter.create('kate', FC.VW / 2 - FC.START_GAP, 1);
     bungus = Fighter.create('bungus', FC.VW / 2 + FC.START_GAP, -1);
+    projectiles = [];
     state = 'fight';
     titleEl.classList.add('hidden'); titleEl.setAttribute('aria-hidden', 'true');
   }
@@ -64,14 +66,44 @@
 
   function busy(f) { return f.state === 'attack' || f.state === 'hitstun' || f.state === 'knockdown' || f.state === 'blockstun'; }
 
+  function startSpecial(f, key) {
+    f.state = 'attack'; f.move = key; f.stateFrame = 0; f.hitThisMove = false; f.vx = 0;
+  }
+
   function applyAttack(f, intent, opp) {
-    if (!intent.attack || busy(f)) return;
+    if (!intent.attack) return;
     if (intent.attack.throw) {
+      if (busy(f)) return;
       const ev = Combat.tryThrow(f, opp, MoveSelect.throwKey(f.id));
       if (ev && window.ArtFX) ArtFX.hitSpark(ev);
       Fighter.start(f, MoveSelect.throwKey(f.id));
       return;
     }
+
+    // Special-cancel: allow interrupting a cancelable move that has connected
+    const canCancel = f.state === 'attack' && Moves.TABLE[f.move] &&
+      Moves.TABLE[f.move].cancelable && f.hitThisMove;
+
+    // Detect special move for Kate via motion buffer; AI can pass intent.attack.special directly
+    let sp = intent.attack.special || null;
+    if (!sp && f.id === 'kate' && intent.attack.button) {
+      sp = Specials.detect(kMotion, intent.attack.button, f.meter >= FC.MAX_METER, frame, f.facing);
+    }
+
+    if (sp) {
+      if (!busy(f) || canCancel) {
+        // Super requires full meter and spends it
+        if (Moves.TABLE[sp] && Moves.TABLE[sp].meterGain === 0 && sp.endsWith('super')) {
+          if (f.meter < FC.MAX_METER) return; // not enough meter
+          f.meter = 0;
+        }
+        startSpecial(f, sp);
+        return;
+      }
+    }
+
+    // Normal attack path
+    if (busy(f)) return;
     const key = MoveSelect.normalKey(f, { dir: intent.dir, heavy: intent.attack.heavy, button: intent.attack.button });
     if (!f.onGround) { f.move = key; f.state = 'attack'; f.stateFrame = 0; f.hitThisMove = false; f.vx = 0; }
     else Fighter.start(f, key);
@@ -88,6 +120,27 @@
     if (ev1 && window.ArtFX) ArtFX.hitSpark(ev1);
     const ev2 = Combat.resolve(bungus, kate);
     if (ev2 && window.ArtFX) ArtFX.hitSpark(ev2);
+
+    // Projectile spawning — trigger on the first active frame of a projectile move
+    for (const f of [kate, bungus]) {
+      if (f.state === 'attack' && f.move && Moves.TABLE[f.move] && Moves.TABLE[f.move].projectile) {
+        const mv = Moves.TABLE[f.move];
+        if (f.stateFrame === mv.startup) {
+          const proj = Specials.spawnProjectile(mv.projectile, { x: f.x + f.facing * 40, y: f.y, facing: f.facing });
+          projectiles.push(proj);
+        }
+      }
+    }
+
+    // Step projectiles, check hits against opponent
+    for (const p of projectiles) {
+      Specials.stepProjectile(p);
+      const target = p.owner === 'kate' ? bungus : kate;
+      const ev = Combat.applyProjectileHit(p, target);
+      if (ev && window.ArtFX) ArtFX.hitSpark(ev);
+    }
+    projectiles = projectiles.filter(p => !p.dead);
+
     if (bungus.health <= 0 || kate.health <= 0) state = 'ko';
   }
 
@@ -108,6 +161,11 @@
     if (kate && bungus) {
       ArtBungus.draw(ctx, bungus); ArtKate.draw(ctx, kate);
       ArtFX.drawHealth(ctx, kate, bungus, FC.VW);
+      // Draw projectiles
+      for (const p of projectiles) {
+        ctx.fillStyle = p.owner === 'kate' ? '#5ad4ff' : '#9bbf4a';
+        ctx.beginPath(); ctx.arc(p.x, p.y - 60, 16, 0, Math.PI * 2); ctx.fill();
+      }
     }
   }
 
