@@ -22,11 +22,15 @@
   const kMotion = Input.createMotion();
   let frame = 0;
   let projectiles = [];
+  let aiDecision = { dir: 5, jump: false, attack: null };
+  let aiHold = 0;
 
   function newMatch() {
     kate = Fighter.create('kate', FC.VW / 2 - FC.START_GAP, 1);
     bungus = Fighter.create('bungus', FC.VW / 2 + FC.START_GAP, -1);
     projectiles = [];
+    aiDecision = { dir: 5, jump: false, attack: null };
+    aiHold = 0;
     state = 'fight';
     titleEl.classList.add('hidden'); titleEl.setAttribute('aria-hidden', 'true');
   }
@@ -115,7 +119,15 @@
     applyAttack(kate, pi, bungus);
     Fighter.step(kate, pi, bungus);
     kate.blockingLow = kate.onGround && kate.state === 'crouch' && ((kate.facing === 1 && pi.dir === 1) || (kate.facing === -1 && pi.dir === 3));
-    Fighter.step(bungus, { dir: 5, jump: false, attack: null }, kate); // dummy
+    // Bungus AI (perception delay; attack consumed once)
+    if (aiHold <= 0) { aiDecision = BungusAI.decide(bungus, kate, Math.random, BungusAI.DIFFICULTY, frame); aiHold = BungusAI.DIFFICULTY.reactFrames; }
+    else { aiHold--; }
+    const bi = { dir: aiDecision.dir, jump: aiDecision.jump, attack: aiDecision.attack };
+    aiDecision.attack = null;        // consume the attack so it isn't re-applied each held frame
+    aiDecision.jump = false;
+    applyAttack(bungus, bi, kate);
+    Fighter.step(bungus, bi, kate);
+    bungus.blockingLow = bungus.onGround && bungus.state === 'crouch' && ((bungus.facing === 1 && bi.dir === 1) || (bungus.facing === -1 && bi.dir === 3));
     const ev1 = Combat.resolve(kate, bungus);
     if (ev1 && window.ArtFX) ArtFX.hitSpark(ev1);
     const ev2 = Combat.resolve(bungus, kate);
