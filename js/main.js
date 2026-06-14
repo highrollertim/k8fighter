@@ -85,6 +85,7 @@
     hideOverlay(endEl);
     hideOverlay(movesEl);
     state = 'fight';
+    if (window.Sound) { Sound.startMusic(); Sound.bell(); }
   }
 
   // Track press timing for A/S to distinguish tap (light) vs hold (heavy)
@@ -152,6 +153,7 @@
         if (Moves.TABLE[sp] && Moves.TABLE[sp].meterGain === 0 && sp.endsWith('super')) {
           if (f.meter < FC.MAX_METER) return; // not enough meter
           f.meter = 0;
+          if (window.Sound) Sound.super();
         }
         startSpecial(f, sp);
         return;
@@ -174,6 +176,20 @@
     if (match.phase === 'roundStart' && lastPhase !== 'roundStart') {
       resetRound();
     }
+
+    // Ring bell and restart music when fight phase begins (each round)
+    if (match.phase === 'fight' && lastPhase === 'roundStart') {
+      if (window.Sound) { Sound.startMusic(); Sound.bell(); }
+    }
+
+    // KO sound fires once on transition into roundEnd (when there is a winner, not timeout draw)
+    if (match.phase === 'roundEnd' && lastPhase === 'fight') {
+      if (window.Sound && match.lastWinner && match.lastWinner !== 'draw') Sound.ko();
+    }
+    if (match.phase === 'matchEnd' && lastPhase !== 'matchEnd') {
+      if (window.Sound && match.lastWinner && match.lastWinner !== 'draw') Sound.ko();
+    }
+
     lastPhase = match.phase;
 
     if (match.phase !== 'fight') {
@@ -184,8 +200,11 @@
     // ---- fight logic: player intent, applyAttack, steps, combat, projectiles ----
     const pi = playerIntent();
     applyAttack(kate, pi, bungus);
+    const katePreState = kate.state; const katePreHit = kate.hitThisMove;
     Fighter.step(kate, pi, bungus);
     kate.blockingLow = kate.onGround && kate.state === 'crouch' && ((kate.facing === 1 && pi.dir === 1) || (kate.facing === -1 && pi.dir === 3));
+    // Whiff: kate attack ended without landing a hit
+    if (window.Sound && katePreState === 'attack' && kate.state !== 'attack' && !katePreHit) Sound.whiff();
 
     // Bungus AI (perception delay; attack consumed once)
     if (aiHold <= 0) { aiDecision = BungusAI.decide(bungus, kate, Math.random, BungusAI.DIFFICULTY, frame); aiHold = BungusAI.DIFFICULTY.reactFrames - 1; }
@@ -194,13 +213,38 @@
     aiDecision.attack = null;        // consume the attack so it isn't re-applied each held frame
     aiDecision.jump = false;
     applyAttack(bungus, bi, kate);
+    const bungusPreState = bungus.state; const bungusPreHit = bungus.hitThisMove;
     Fighter.step(bungus, bi, kate);
     bungus.blockingLow = bungus.onGround && bungus.state === 'crouch' && ((bungus.facing === 1 && bi.dir === 1) || (bungus.facing === -1 && bi.dir === 3));
+    // Whiff: bungus attack ended without landing a hit
+    if (window.Sound && bungusPreState === 'attack' && bungus.state !== 'attack' && !bungusPreHit) Sound.whiff();
 
     const ev1 = Combat.resolve(kate, bungus);
-    if (ev1) ArtFX.hitSpark(ev1);
+    if (ev1) {
+      ArtFX.hitSpark(ev1);
+      if (window.Sound) {
+        if (ev1.type === 'hit') {
+          const isKick = ev1.move && /[KS]/.test(ev1.move.key || '');
+          if (isKick) Sound.kick(ev1.move && ev1.move.knockdown);
+          else Sound.hit(ev1.move && ev1.move.knockdown);
+        } else if (ev1.type === 'block') {
+          Sound.block();
+        }
+      }
+    }
     const ev2 = Combat.resolve(bungus, kate);
-    if (ev2) ArtFX.hitSpark(ev2);
+    if (ev2) {
+      ArtFX.hitSpark(ev2);
+      if (window.Sound) {
+        if (ev2.type === 'hit') {
+          const isKick = ev2.move && /[KS]/.test(ev2.move.key || '');
+          if (isKick) Sound.kick(ev2.move && ev2.move.knockdown);
+          else Sound.hit(ev2.move && ev2.move.knockdown);
+        } else if (ev2.type === 'block') {
+          Sound.block();
+        }
+      }
+    }
 
     // Projectile spawning — trigger on the first active frame of a projectile move
     for (const f of [kate, bungus]) {
@@ -209,6 +253,11 @@
         if (f.stateFrame === mv.startup) {
           const proj = Specials.spawnProjectile(mv.projectile, { x: f.x + f.facing * 40, y: f.y, facing: f.facing });
           projectiles.push(proj);
+          // Sound for projectile launch
+          if (window.Sound) {
+            if (mv.projectile === 'kate.proj') Sound.fireball();
+            else if (mv.projectile === 'bungus.sporeproj') Sound.spore();
+          }
         }
       }
     }
@@ -218,7 +267,13 @@
       Specials.stepProjectile(p);
       const target = p.owner === 'kate' ? bungus : kate;
       const ev = Combat.applyProjectileHit(p, target);
-      if (ev) ArtFX.hitSpark(ev);
+      if (ev) {
+        ArtFX.hitSpark(ev);
+        if (window.Sound) {
+          if (ev.type === 'hit') Sound.hit(false);
+          else if (ev.type === 'block') Sound.block();
+        }
+      }
     }
     projectiles = projectiles.filter(p => !p.dead);
   }
@@ -258,7 +313,7 @@
   // ---- Mute button ----
   muteBtn.addEventListener('click', () => {
     muted = !muted;
-    if (window.Audio && typeof Audio.setMuted === 'function') Audio.setMuted(muted);
+    if (window.Sound) Sound.setMuted(muted);
     if (window.Voice && typeof Voice.setMuted === 'function') Voice.setMuted(muted);
     muteBtn.textContent = muted ? '🔇' : '🔊';
     muteBtn.setAttribute('aria-pressed', String(muted));
