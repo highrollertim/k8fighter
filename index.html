@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kate vs. Bungus</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="overlay-title" class="overlay">
+  <h1>KATE <span class="vs">vs.</span> BUNGUS</h1>
+  <p class="hint">Arrows move &middot; <kbd>A</kbd> punch &middot; <kbd>S</kbd> kick &middot; <kbd>Space</kbd> jump &middot; hold away to block</p>
+  <p class="hint">Press <kbd>Enter</kbd> to fight &middot; <kbd>H</kbd> for moves</p>
+</div>
+
+<div id="overlay-moves" class="overlay hidden" aria-hidden="true">
+  <h2>MOVES</h2>
+  <ul id="moveList"></ul>
+  <p class="hint">Press <kbd>H</kbd> or <kbd>Esc</kbd> to close</p>
+</div>
+
+<div id="overlay-end" class="overlay hidden" aria-hidden="true">
+  <h1 id="endTitle"></h1>
+  <p id="endMsg" class="hint"></p>
+  <p class="hint">Press <kbd>Enter</kbd> to rematch</p>
+</div>
+
+<button id="muteBtn" type="button" title="Mute" aria-label="Mute" aria-pressed="false">&#x1F50A;</button>
+
+<script src="js/constants.js"></script>
+<script src="js/input.js"></script>
+<script src="js/moves.js"></script>
+<script src="js/fighter.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/bungus-ai.js"></script>
+<script src="js/match.js"></script>
+<script src="js/art-stages.js"></script>
+<script src="js/art-kate.js"></script>
+<script src="js/art-bungus.js"></script>
+<script src="js/art-fx.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

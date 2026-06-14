@@ -1,0 +1,20 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #0e0d12; }
+body { font-family: "Trebuchet MS", "Segoe UI", sans-serif; }
+#game { display: block; }
+.overlay {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px; text-align: center;
+  color: #f3e9dd; background: rgba(14, 13, 18, 0.72);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  transition: opacity 0.25s;
+}
+.overlay.hidden { opacity: 0; pointer-events: none; }
+.overlay h1 { font-size: clamp(38px, 8vw, 82px); letter-spacing: 2px; color: #e7d9a8; text-shadow: 0 3px 0 rgba(0,0,0,0.5); }
+.overlay h1 .vs { color: #c0563f; font-style: italic; }
+.overlay h2 { font-size: clamp(26px, 5vw, 44px); color: #d4ff5a; letter-spacing: 2px; }
+.hint { font-size: 15px; opacity: 0.85; line-height: 1.5; max-width: 680px; }
+#moveList { list-style: none; font-size: 16px; line-height: 1.9; opacity: 0.95; }
+#moveList b { color: #d4ff5a; }
+kbd { background: #2a2733; border-radius: 6px; border: 1px solid #4a4658; box-shadow: 0 2px 0 #1a1822; padding: 2px 8px; font-family: inherit; font-weight: 700; }
+#muteBtn { position: fixed; bottom: 16px; right: 16px; z-index: 10; font-size: 20px; width: 46px; height: 46px; border-radius: 50%; border: none; background: rgba(255,255,255,0.85); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
