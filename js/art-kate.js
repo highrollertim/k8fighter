@@ -26,6 +26,8 @@
     const walkCycle = Math.sin(t * 0.28);
     const walkBob   = Math.abs(Math.sin(t * 0.28)) * 3;   // vertical bob
     const base={ crouch:0, lean:0, hipY:54, headY:96, armF:[24,70], armB:[-6,68], legF:[16,0], legB:[-16,0], punch:0, kick:0 };
+    // KO ragdoll: deep sprawl when health is zero (knocked out)
+    if(f.health <= 0) return Object.assign(base,{crouch:52,hipY:10,headY:22,lean:-50,armF:[18,16],armB:[-26,20],legF:[52,0],legB:[-44,0]});
     if(f.state==='crouch') return Object.assign(base,{crouch:18,hipY:36,headY:74});
     if(!f.onGround||f.state==='jump') return Object.assign(base,{hipY:60,legF:[10,18],legB:[-14,20],armF:[20,82],lean:6});
     if(f.state==='block'||f.state==='blockstun') return Object.assign(base,{lean:-8,armF:[14,72],armB:[8,66]});

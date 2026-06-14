@@ -14,6 +14,8 @@
 
   function poseFor(f){
     const m=f.move;
+    // KO ragdoll: fully splayed out when health is zero (knocked out)
+    if(f.health <= 0) return {lean:-55,bodyY:38,armF:-35,mouth:1,sink:52};
     if(f.state==='crouch') return {lean:0,bodyY:14,armF:0,mouth:0,sink:14};
     if(!f.onGround||f.state==='jump') return {lean:0,bodyY:-10,armF:0,mouth:0.4,sink:0};
     if(f.state==='hitstun') return {lean:-12,bodyY:0,armF:0,mouth:0.6,sink:0};

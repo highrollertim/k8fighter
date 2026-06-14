@@ -35,6 +35,25 @@
   let muted = false;
   let lastVoiceFrame = -999;
 
+  // --- Slow-motion / timeScale ---
+  let timeScale = 1;
+  let slowmoFrames = 0;
+  let slowmoTargetScale = 0.25;
+
+  function triggerSlowmo(frames, scale) {
+    slowmoFrames = frames;
+    slowmoTargetScale = scale;
+    timeScale = scale;
+  }
+
+  // --- KO zoom state ---
+  // zoomFactor: current zoom multiplier (1.0 = no zoom)
+  // zoomFrames: remaining frames in the KO zoom window
+  // zoomFocusX: virtual-space x position to center on during zoom
+  let zoomFactor = 1.0;
+  let zoomFrames = 0;
+  let zoomFocusX = FC.VW / 2;
+
   // ---- Move list overlay setup ----
   const MOVES_LIST = [
     ['Move', 'Arrows'], ['Jump', 'Up / Space'], ['Crouch', 'Down'],
@@ -77,6 +96,9 @@
     // Reset button tracking
     btn.A.down = false; btn.A.frame = 0; btn.A.fired = false; btn.A.pending = null;
     btn.S.down = false; btn.S.frame = 0; btn.S.fired = false; btn.S.pending = null;
+    // Reset cinematic state so no zoom/slowmo carries over between rounds
+    timeScale = 1; slowmoFrames = 0;
+    zoomFactor = 1.0; zoomFrames = 0; zoomFocusX = FC.VW / 2;
   }
 
   function newMatch() {
@@ -164,6 +186,9 @@
           if (f.meter < FC.MAX_METER) return; // not enough meter
           f.meter = 0;
           if (window.Sound) Sound.super();
+          // Cinematic super activation: slow-mo + flash/vignette
+          triggerSlowmo(36, 0.22);
+          if (window.ArtFX) ArtFX.triggerSuperCinematic();
         }
         startSpecial(f, sp);
         return;
@@ -196,6 +221,16 @@
     // KO sound fires once on transition into roundEnd (when there is a winner, not timeout draw)
     if (match.phase === 'roundEnd' && lastPhase === 'fight') {
       if (window.Sound && match.lastWinner && match.lastWinner !== 'draw') Sound.ko();
+      // KO drama: slow-mo + zoom toward the loser
+      if (match.lastWinner && match.lastWinner !== 'draw') {
+        triggerSlowmo(60, 0.25);
+        // Identify the loser by health (the fighter that isn't the winner)
+        const loser = match.lastWinner === 'kate' ? bungus : kate;
+        zoomFocusX = loser ? loser.x : FC.VW / 2;
+        zoomFactor = 1.25;
+        zoomFrames = 60; // real render frames of zoom (will ease out after)
+        if (window.ArtFX) { ArtFX.triggerSuperCinematic(); } // flash
+      }
     }
     if (match.phase === 'matchEnd' && lastPhase !== 'matchEnd') {
       if (window.Sound && match.lastWinner && match.lastWinner !== 'draw') Sound.ko();
@@ -317,7 +352,24 @@
   let acc = 0, last = 0;
   function frameLoop(t) {
     const dt = Math.min((t - last) / 1000 || 0, 0.1); last = t;
-    if (state === 'fight') { acc += dt; let steps = 0; while (acc >= FC.DT && steps < 5) { sim(); acc -= FC.DT; steps++; } }
+
+    // --- Slow-motion: update timeScale each render frame ---
+    if (slowmoFrames > 0) {
+      slowmoFrames--;
+      timeScale = slowmoTargetScale;
+      if (slowmoFrames === 0) {
+        // Ease back to 1 — we'll lerp over subsequent frames
+        timeScale = slowmoTargetScale; // will ramp below
+      }
+    } else {
+      // Lerp timeScale back toward 1 when slowmo has expired
+      if (timeScale < 1) {
+        timeScale += (1 - timeScale) * 0.18;
+        if (timeScale > 0.99) timeScale = 1;
+      }
+    }
+
+    if (state === 'fight') { acc += dt * timeScale; let steps = 0; while (acc >= FC.DT && steps < 5) { sim(); acc -= FC.DT; steps++; } }
     render();
     requestAnimationFrame(frameLoop);
   }
@@ -326,9 +378,41 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const sh = match ? ArtFX.shakeOffset() : { x: 0, y: 0 };
-    const ox = (canvas.width - FC.VW * scale) / 2 + sh.x * scale;
-    const oy = (canvas.height - FC.VH * scale) / 2 + sh.y * scale;
-    ctx.setTransform(scale, 0, 0, scale, ox, oy);
+
+    // --- KO zoom: update zoomFactor / zoomFrames each render frame ---
+    if (zoomFrames > 0) {
+      zoomFrames--;
+      // Hold zoom at target while frames remain
+    } else if (zoomFactor > 1.0) {
+      // Ease zoom back toward 1.0 when window is over
+      zoomFactor += (1.0 - zoomFactor) * 0.12;
+      if (zoomFactor < 1.005) zoomFactor = 1.0;
+    }
+
+    // --- Compute letterbox transform (base) ---
+    const baseScale = scale; // set by resize()
+    // Zoomed scale: multiply by zoomFactor
+    const renderScale = baseScale * zoomFactor;
+
+    // Compute ox/oy:
+    // Without zoom: centers the 960×540 virtual field on canvas.
+    // With zoom: we want zoomFocusX (virtual x) to map to canvas center.
+    // canvas center = canvas.width/2, canvas.height/2
+    // Under zoom: virtual point (focusX, FC.VH/2) → screen (renderScale*focusX + ox, renderScale*VH/2 + oy)
+    // We want that to equal (canvas.width/2, canvas.height/2).
+    // So: ox = canvas.width/2  - renderScale * zoomFocusX
+    //     oy = canvas.height/2 - renderScale * (FC.VH / 2)
+    // But apply shake on top.
+    let ox, oy;
+    if (zoomFactor > 1.001) {
+      ox = canvas.width  / 2 - renderScale * zoomFocusX + sh.x * renderScale;
+      oy = canvas.height / 2 - renderScale * (FC.VH / 2) + sh.y * renderScale;
+    } else {
+      ox = (canvas.width  - FC.VW * renderScale) / 2 + sh.x * renderScale;
+      oy = (canvas.height - FC.VH * renderScale) / 2 + sh.y * renderScale;
+    }
+
+    ctx.setTransform(renderScale, 0, 0, renderScale, ox, oy);
     ArtStages.draw(ctx, stageIndex, FC.VW, FC.VH, performance.now() * 0.06);
     if (kate && bungus) {
       // Draw projectiles behind fighters
@@ -340,6 +424,8 @@
       ArtKate.draw(ctx, kate);
       ArtFX.drawSparks(ctx);
       ArtFX.drawFlash(ctx, FC.VW, FC.VH);
+      // Super cinematic overlay (vignette + flash)
+      if (ArtFX.superCinematicActive()) ArtFX.drawSuperCinematic(ctx, FC.VW, FC.VH);
       if (match && (state === 'fight' || state === 'end')) {
         ArtFX.drawHUD(ctx, kate, bungus, match, FC.VW, FC.VH);
         ArtFX.banner(ctx, match, FC.VW, FC.VH);

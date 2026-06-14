@@ -11,6 +11,12 @@
   let comboCount = 0, comboTimer = 0;
   const COMBO_DURATION = 90; // frames to show combo
 
+  // --- Super Cinematic (darken vignette + white flash) ---
+  // superFlash: 0..1, bright white overlay that decays quickly
+  // superDarken: 0..1, dark vignette that lingers a bit longer
+  let superFlash = 0;
+  let superDarken = 0;
+
   function hitSpark(ev) {
     if (!ev) return;
     const d = ev.defender; if (!d) return;
@@ -54,6 +60,9 @@
     if (flash > 0) { flash *= 0.72; if (flash < 0.01) flash = 0; }
     // Decay combo timer
     if (comboTimer > 0) comboTimer--;
+    // Decay super cinematic
+    if (superFlash > 0) { superFlash *= 0.78; if (superFlash < 0.01) superFlash = 0; }
+    if (superDarken > 0) { superDarken *= 0.94; if (superDarken < 0.005) superDarken = 0; }
   }
 
   function shakeOffset() {
@@ -69,6 +78,41 @@
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, vw, vh);
     ctx.restore();
+  }
+
+  // Trigger the super-activation cinematic: vignette darken + white flash.
+  function triggerSuperCinematic() {
+    superFlash = 1.0;
+    superDarken = 0.72;
+  }
+
+  // Draw the super cinematic overlay: dark vignette bars + bright white flash.
+  // Called from main render during the cinematic window (while superDarken or superFlash > 0).
+  function drawSuperCinematic(ctx, vw, vh) {
+    if (superDarken <= 0 && superFlash <= 0) return;
+    ctx.save();
+    // Dark vignette overlay
+    if (superDarken > 0) {
+      ctx.globalAlpha = superDarken * 0.55;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, vw, vh);
+      // Letterbox bars (top/bottom) — extra dramatic darkening
+      ctx.globalAlpha = superDarken * 0.6;
+      const barH = Math.round(vh * 0.12);
+      ctx.fillRect(0, 0, vw, barH);
+      ctx.fillRect(0, vh - barH, vw, barH);
+    }
+    // White flash on top
+    if (superFlash > 0) {
+      ctx.globalAlpha = superFlash * 0.85;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, vw, vh);
+    }
+    ctx.restore();
+  }
+
+  function superCinematicActive() {
+    return superDarken > 0.005 || superFlash > 0.01;
   }
 
   function setCombo(n) {
@@ -164,5 +208,6 @@
     ctx.fillText(text, vw/2, vh/2 - 40);
   }
 
-  root.ArtFX = { hitSpark, step, shakeOffset, drawSparks, drawHUD, banner, drawFlash, cameraPunch, setCombo };
+  root.ArtFX = { hitSpark, step, shakeOffset, drawSparks, drawHUD, banner, drawFlash, cameraPunch, setCombo,
+    triggerSuperCinematic, drawSuperCinematic, superCinematicActive };
 })(window);
