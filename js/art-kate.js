@@ -26,6 +26,9 @@
     const walkCycle = Math.sin(t * 0.28);
     const walkBob   = Math.abs(Math.sin(t * 0.28)) * 3;   // vertical bob
     const base={ crouch:0, lean:0, hipY:54, headY:96, armF:[24,70], armB:[-6,68], legF:[16,0], legB:[-16,0], punch:0, kick:0 };
+    // Transient pose overrides (set by main.js during intro/victory windows; cleared otherwise)
+    if(f._pose === 'intro') return Object.assign(base,{crouch:6,lean:8,hipY:50,headY:92,armF:[22,76],armB:[8,72],legF:[22,0],legB:[-20,0]});
+    if(f._pose === 'victory') return Object.assign(base,{lean:-4,hipY:56,headY:100,armF:[28,108],armB:[-8,72],legF:[18,0],legB:[-14,0],punch:1});
     // KO ragdoll: deep sprawl when health is zero (knocked out)
     if(f.health <= 0) return Object.assign(base,{crouch:52,hipY:10,headY:22,lean:-50,armF:[18,16],armB:[-26,20],legF:[52,0],legB:[-44,0]});
     if(f.state==='crouch') return Object.assign(base,{crouch:18,hipY:36,headY:74});

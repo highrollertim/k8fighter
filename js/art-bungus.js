@@ -14,6 +14,9 @@
 
   function poseFor(f){
     const m=f.move;
+    // Transient pose overrides (set by main.js during intro/victory windows; cleared otherwise)
+    if(f._pose === 'intro') return {lean:6,bodyY:0,armF:16,mouth:0.3,sink:0};
+    if(f._pose === 'victory') return {lean:0,bodyY:-4,armF:55,mouth:0.9,sink:0};
     // KO ragdoll: fully splayed out when health is zero (knocked out)
     if(f.health <= 0) return {lean:-55,bodyY:38,armF:-35,mouth:1,sink:52};
     if(f.state==='crouch') return {lean:0,bodyY:14,armF:0,mouth:0,sink:14};

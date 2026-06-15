@@ -214,6 +214,14 @@
   }
 
   function banner(ctx, match, vw, vh) {
+    // Round-1 roundStart: intro overlay handles the full window; only draw FIGHT! on the last beat.
+    if (match.round === 1 && match.phase === 'roundStart') {
+      if (match.phaseFrame >= 72) {
+        ctx.fillStyle = '#d4ff5a'; ctx.font = '900 72px "Trebuchet MS",sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('FIGHT!', vw/2, vh/2 - 40);
+      }
+      return;
+    }
     let text = null, color = '#e7d9a8';
     if (match.phase === 'roundStart') {
       text = match.phaseFrame < 50 ? ('ROUND ' + match.round) : 'FIGHT!';
@@ -227,6 +235,54 @@
     ctx.fillText(text, vw/2, vh/2 - 40);
   }
 
-  root.ArtFX = { hitSpark, step, stepCinematic, resetCinematic, shakeOffset, drawSparks, drawHUD, banner, drawFlash, cameraPunch, setCombo,
+  // Round-1 face-off intro overlay. phaseFrame 0-89 (within the 90-frame roundStart window).
+  // Frame windows:
+  //   0-29:  KATE vs BUNGUS name flash (fade in/hold)
+  //  30-54:  VS flash (large, pulsing)
+  //  55-71:  ROUND 1 text
+  //  72-89:  FIGHT! (handled by banner() above)
+  function drawIntro(ctx, vw, vh, phaseFrame) {
+    const pf = phaseFrame;
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    if (pf < 30) {
+      // Names phase: KATE  vs  BUNGUS
+      const alpha = Math.min(1, pf / 12);
+      ctx.globalAlpha = alpha;
+      ctx.font = '900 36px "Trebuchet MS",sans-serif';
+      ctx.fillStyle = '#e7d9a8';
+      ctx.fillText('KATE', vw / 2 - 130, vh / 2 - 40);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '700 22px "Trebuchet MS",sans-serif';
+      ctx.fillText('vs', vw / 2, vh / 2 - 40);
+      ctx.fillStyle = '#c0563f';
+      ctx.font = '900 36px "Trebuchet MS",sans-serif';
+      ctx.fillText('BUNGUS', vw / 2 + 130, vh / 2 - 40);
+    } else if (pf < 55) {
+      // VS flash — big, pulses
+      const t = (pf - 30) / 24;
+      const pulse = 1 + Math.sin(t * Math.PI * 3) * 0.08;
+      const alpha = Math.min(1, (pf - 30) / 8);
+      ctx.globalAlpha = alpha;
+      ctx.font = '900 ' + Math.round(88 * pulse) + 'px "Trebuchet MS",sans-serif';
+      // Outline effect
+      ctx.fillStyle = '#000000';
+      ctx.fillText('VS', vw / 2 + 3, vh / 2 - 37);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('VS', vw / 2, vh / 2 - 40);
+    } else if (pf < 72) {
+      // ROUND 1 text
+      const alpha = Math.min(1, (pf - 55) / 8);
+      ctx.globalAlpha = alpha;
+      ctx.font = '900 72px "Trebuchet MS",sans-serif';
+      ctx.fillStyle = '#e7d9a8';
+      ctx.fillText('ROUND 1', vw / 2, vh / 2 - 40);
+    }
+
+    ctx.restore();
+  }
+
+  root.ArtFX = { hitSpark, step, stepCinematic, resetCinematic, shakeOffset, drawSparks, drawHUD, banner, drawIntro, drawFlash, cameraPunch, setCombo,
     triggerSuperCinematic, drawSuperCinematic, superCinematicActive };
 })(window);

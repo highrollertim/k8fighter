@@ -219,6 +219,8 @@
     // Detect phase transition into a new roundStart and reset fighters exactly once
     if (match.phase === 'roundStart' && lastPhase !== 'roundStart') {
       resetRound();
+      // Fire the round-1 intro voice line exactly once at the very start of round 1
+      if (match.round === 1 && window.Voice) Voice.say('intro');
     }
 
     // Ring bell and restart music when fight phase begins (each round)
@@ -454,8 +456,16 @@
         ctx.fillStyle = p.owner === 'kate' ? '#5ad4ff' : '#9bbf4a';
         ctx.beginPath(); ctx.arc(p.x, p.y - 60, 16, 0, Math.PI * 2); ctx.fill();
       }
+      // --- Pose hints: set _pose before draw, clear after ---
+      // Round-1 roundStart: both fighters show 'intro' pose during the face-off window (frames 0-71)
+      const isRound1Intro = match && match.round === 1 && match.phase === 'roundStart' && match.phaseFrame < 72;
+      // matchEnd + endDelay: winner shows 'victory' pose
+      const isMatchEnd = match && (match.phase === 'matchEnd' || state === 'end');
+      kate._pose   = isRound1Intro ? 'intro' : (isMatchEnd && match.matchWinner === 'kate'   ? 'victory' : undefined);
+      bungus._pose = isRound1Intro ? 'intro' : (isMatchEnd && match.matchWinner === 'bungus' ? 'victory' : undefined);
       ArtBungus.draw(ctx, bungus);
       ArtKate.draw(ctx, kate);
+      kate._pose = undefined; bungus._pose = undefined;
       ArtFX.drawSparks(ctx);
       // Fix 3: Pass physical canvas dimensions so overlays cover the full canvas
       // (identity transform is set inside these functions before filling).
@@ -465,6 +475,10 @@
       if (match && (state === 'fight' || state === 'end')) {
         ArtFX.drawHUD(ctx, kate, bungus, match, FC.VW, FC.VH);
         ArtFX.banner(ctx, match, FC.VW, FC.VH);
+      }
+      // Round-1 intro overlay (VS / names flash) drawn on top of HUD
+      if (match && match.round === 1 && match.phase === 'roundStart') {
+        ArtFX.drawIntro(ctx, FC.VW, FC.VH, match.phaseFrame);
       }
     }
   }
