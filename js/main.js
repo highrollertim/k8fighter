@@ -193,9 +193,9 @@
           if (f.meter < FC.MAX_METER) return; // not enough meter
           f.meter = 0;
           if (window.Sound) Sound.super();
-          // Cinematic super activation: slow-mo + flash/vignette
+          // Cinematic super activation: slow-mo + flash/vignette + "KATE SUPER!" banner
           triggerSlowmo(36, 0.22);
-          if (window.ArtFX) ArtFX.triggerSuperCinematic();
+          if (window.ArtFX) { ArtFX.triggerSuperCinematic(); ArtFX.triggerSuperText(); }
           // Clear motion buffer so a buffered QCF doesn't re-fire after slow-mo (Fix 6)
           kMotion.hist.length = 0;
         }

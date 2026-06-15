@@ -86,7 +86,7 @@
           }
         }
         // Phase 3 - Finisher (stateFrame >= 30): big lunging final blow, ease into recovery
-        const recov = Math.max(0, t - 30); // 0..29 within recovery
+        const recov = t - 30; // 0..29 within recovery (t>=30 guaranteed here)
         const ease = Math.min(1, recov / 20); // 0→1 eases toward neutral
         const lunge = 28 - ease * 14; // arm reaches out then eases back
         return Object.assign(base,{
@@ -237,7 +237,6 @@
       const fakeF = Object.assign({}, f, { x: f.x + GHOST_OFFSETS[i] });
       drawFigure(ctx, fakeF, p, fc, 0);
     }
-    ctx.globalAlpha = 1;
     ctx.restore();
   }
 

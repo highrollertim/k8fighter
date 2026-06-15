@@ -99,10 +99,16 @@
     ctx.restore();
   }
 
-  // Trigger the super-activation cinematic: vignette darken + white flash + SUPER! text.
+  // Trigger the super-activation cinematic: vignette darken + white flash only.
+  // Call triggerSuperText() separately when the "KATE SUPER!" banner should appear.
   function triggerSuperCinematic() {
     superFlash = 1.0;
     superDarken = 0.72;
+  }
+
+  // Show the "KATE SUPER!" text banner. Call this only on actual super activation,
+  // NOT on generic KO cinematics.
+  function triggerSuperText() {
     superTextTimer = SUPER_TEXT_DURATION;
   }
 
@@ -159,7 +165,7 @@
       const alpha = progress < 0.5 ? Math.min(1, progress * 4) : progress * 2;
       // Scale: pop in large, ease slightly smaller
       const scale = 1 + (1 - progress) * 0.08;
-      ctx.globalAlpha = Math.min(1, alpha) * (1 - superFlash); // hidden during initial white flash
+      const textAlpha = Math.min(1, alpha) * (1 - superFlash); // hidden during initial white flash
       ctx.textAlign = 'center';
       const cx = cw / 2, cy = ch / 2 - ch * 0.12;
       ctx.save();
@@ -169,10 +175,10 @@
       const fs = Math.round(ch * 0.12);
       ctx.font = '900 ' + fs + 'px "Trebuchet MS",sans-serif';
       ctx.fillStyle = '#000000';
-      ctx.globalAlpha = Math.min(1, alpha) * 0.65 * (1 - superFlash);
+      ctx.globalAlpha = textAlpha * 0.65;
       ctx.fillText('KATE SUPER!', 4, 4);
       // Main text: cyan flash
-      ctx.globalAlpha = Math.min(1, alpha) * (1 - superFlash);
+      ctx.globalAlpha = textAlpha;
       ctx.fillStyle = '#5ad4ff';
       ctx.fillText('KATE SUPER!', 0, 0);
       // Thin white outline for pop
@@ -185,7 +191,7 @@
   }
 
   function superCinematicActive() {
-    return superDarken > 0.005 || superFlash > 0.01;
+    return superDarken > 0.005 || superFlash > 0.01 || superTextTimer > 0;
   }
 
   function setCombo(n) {
@@ -338,5 +344,5 @@
   }
 
   root.ArtFX = { hitSpark, step, stepCinematic, resetCinematic, shakeOffset, drawSparks, drawHUD, banner, drawIntro, drawFlash, cameraPunch, setCombo,
-    triggerSuperCinematic, drawSuperCinematic, superCinematicActive, superStreak };
+    triggerSuperCinematic, triggerSuperText, drawSuperCinematic, superCinematicActive, superStreak };
 })(window);
