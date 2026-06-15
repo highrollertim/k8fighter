@@ -2,11 +2,11 @@
 (function (root) {
   'use strict';
   const LINES = {
-    intro: ["Let's make this quick.", "Hope you brought a mop."],
-    roundStart: ["Okay fungus girl, let's go.", "You're about to get deleted, and not by AI.", "Ugh, you smell like a wet basement."],
-    bigHit: ["Stand on business!", "That's for the spores!", "No cap, you're done."],
-    win: ["G G. Touch grass, actually don't, you'll infect it.", "And THAT is how Kate does it."],
-    takeHit: ["Gross, gross, GROSS.", "Ew, ew, ew!"],
+    intro: ["Let's make this quick.", "Hope you brought a mop.", "I cosplay scarier things than you for fun.", "This is about to be so unserious.", "Ew, is that mold, or is that your whole personality?"],
+    roundStart: ["Okay fungus girl, let's go.", "You're about to get deleted, and not by AI.", "Ugh, you smell like a wet basement.", "Spore me the drama, then lose.", "You're literally a science experiment that said no thanks."],
+    bigHit: ["Stand on business!", "That's for the spores!", "No cap, you're done.", "Skill issue!", "Get mulched!", "Cope, fungus."],
+    win: ["G G. Touch grass, actually don't, you'll infect it.", "And THAT is how Kate does it.", "Composted. Anime is still life.", "G G no re, you absolute biohazard."],
+    takeHit: ["Gross, gross, GROSS.", "Ew, ew, ew!", "It's STICKY, why is it sticky!", "Not the spores, not the spores!", "I am not catching a fungal infection over this."],
   };
   const synth = root.speechSynthesis || null;
   let muted=false; const bags={};
