@@ -43,7 +43,63 @@
       if(m==='kate.jP') return Object.assign(base,{hipY:58,lean:10,armF:[52,58],legF:[14,20],legB:[-10,16]});
       if(m==='kate.fireball') return Object.assign(base,{armF:[40,66],lean:4});
       if(m==='kate.uppercut') return Object.assign(base,{punch:1,armF:[30,110],lean:8,hipY:64});
-      if(m==='kate.super') return Object.assign(base,{punch:1,armF:[50,80],lean:6});
+      if(m==='kate.super') {
+        // kate.super: startup=6, active=24, recovery=30
+        // Phase 1 - Wind-up (stateFrame < 6): coiled ready/dash pose
+        if(t < 6) {
+          return Object.assign(base,{
+            lean: 22,          // strong forward lean, weight forward
+            hipY: 48,          // lower centre of gravity
+            headY: 88,
+            armF: [-4, 60],   // both fists drawn back
+            armB: [-18, 62],
+            legF: [28, 0],     // weight forward on front leg
+            legB: [-22, 0],
+          });
+        }
+        // Phase 2 - Flurry (6 <= stateFrame < 30): rapid alternating barrage
+        if(t < 30) {
+          const cycle = (t - 6) % 4; // 0..3: front-punch / other-arm / front-kick / both
+          const fl = t - 6; // flurry local frame, used for micro bob
+          const lean = 18 + Math.sin(fl * 1.6) * 4; // slight lean oscillation
+          const hipY = 50 + Math.sin(fl * 1.6) * 2;
+          if(cycle === 0) {
+            // Front punch fully extended
+            return Object.assign(base,{ punch:1, lean, hipY, headY:88,
+              armF: [62, 78], armB: [-12, 58],
+              legF: [24, 0], legB: [-20, 0] });
+          } else if(cycle === 1) {
+            // Other (back) arm extended, front arm retracting
+            return Object.assign(base,{ punch:1, lean, hipY, headY:88,
+              armF: [10, 64], armB: [52, 76],
+              legF: [22, 0], legB: [-18, 0] });
+          } else if(cycle === 2) {
+            // Front kick extended high
+            return Object.assign(base,{ kick:1, lean: lean - 4, hipY, headY:86,
+              armF: [8, 58], armB: [-10, 60],
+              legF: [58, 36], legB: [-14, 0] });
+          } else {
+            // Both: simultaneous dual strike (arms split, legs planted wide)
+            return Object.assign(base,{ punch:1, lean, hipY, headY:88,
+              armF: [56, 80], armB: [44, 78],
+              legF: [28, 0], legB: [-26, 0] });
+          }
+        }
+        // Phase 3 - Finisher (stateFrame >= 30): big lunging final blow, ease into recovery
+        const recov = Math.max(0, t - 30); // 0..29 within recovery
+        const ease = Math.min(1, recov / 20); // 0→1 eases toward neutral
+        const lunge = 28 - ease * 14; // arm reaches out then eases back
+        return Object.assign(base,{
+          punch: 1,
+          lean: 26 - ease * 16,
+          hipY: 50 + ease * 4,
+          headY: 86 + ease * 8,
+          armF: [50 + lunge, 76 + ease * 4],
+          armB: [-8, 62 + ease * 6],
+          legF: [32 - ease * 16, 0],
+          legB: [-24 + ease * 10, 0],
+        });
+      }
       if(m==='kate.throw') return Object.assign(base,{armF:[34,74],armB:[20,72]});
     }
     // Enhanced run: walkF gets bigger stride, arm pump, lean, bob
@@ -170,6 +226,21 @@
     ctx.restore();
   }
 
+  // Full-body ghost echoes during super flurry — 3 faint copies offset behind Kate
+  function drawSuperGhosts(ctx, f, p, fc) {
+    const GHOST_ALPHAS  = [0.18, 0.12, 0.07];
+    const GHOST_OFFSETS = [fc * -12, fc * -24, fc * -38]; // trail behind in facing direction
+    ctx.save();
+    for (let i = 0; i < 3; i++) {
+      ctx.globalAlpha = GHOST_ALPHAS[i];
+      // Shift each ghost slightly behind
+      const fakeF = Object.assign({}, f, { x: f.x + GHOST_OFFSETS[i] });
+      drawFigure(ctx, fakeF, p, fc, 0);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   function draw(ctx,f){
     const fc=f.facing, p=poseFor(f);
     const X=(lx)=>f.x+fc*lx, Y=(ly)=>f.y-ly;
@@ -200,10 +271,17 @@
     ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(f.x,f.y+2,30,7,0,0,Math.PI*2); ctx.fill();
 
     // --- Motion streaks (drawn before figure, behind it) ---
+    const isSuperFlurry = f.state === 'attack' && f.move === 'kate.super' &&
+                          f.stateFrame >= 6 && f.stateFrame < 30;
     const doStreaks = airborne || (f.state === 'attack') ||
                       (f.state === 'attack' && f.move && f.move.indexOf('special') >= 0);
-    if (doStreaks) {
+    if (doStreaks && !isSuperFlurry) {
       drawStreaks(ctx, f, p);
+    }
+
+    // During the flurry phase: full-body ghost echoes (2-3 faint copies offset behind)
+    if (isSuperFlurry) {
+      drawSuperGhosts(ctx, f, p, fc);
     }
 
     // --- Determine if we should apply flip rotation ---

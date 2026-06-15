@@ -336,6 +336,12 @@
       }
     }
 
+    // Super energy streaks: spawn radial cyan/white particles each frame during Kate's super flurry
+    if (kate.state === 'attack' && kate.move === 'kate.super' &&
+        kate.stateFrame >= 6 && kate.stateFrame < 30 && window.ArtFX) {
+      ArtFX.superStreak(kate.x, kate.y, kate.facing);
+    }
+
     // Projectile spawning — trigger on the first active frame of a projectile move
     for (const f of [kate, bungus]) {
       if (f.state === 'attack' && f.move && Moves.TABLE[f.move] && Moves.TABLE[f.move].projectile) {

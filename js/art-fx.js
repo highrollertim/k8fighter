@@ -16,6 +16,9 @@
   // superDarken: 0..1, dark vignette that lingers a bit longer
   let superFlash = 0;
   let superDarken = 0;
+  // "SUPER!" text banner: timer counts down from its set value
+  let superTextTimer = 0;
+  const SUPER_TEXT_DURATION = 55; // real frames to show the SUPER! banner
 
   function hitSpark(ev) {
     if (!ev) return;
@@ -66,14 +69,15 @@
   // Decay screen-overlay values in REAL frame time (called once per rAF, not per sim step).
   // This ensures flash/vignette clear promptly even during slow-mo or when state==='end'.
   function stepCinematic() {
-    if (flash > 0)      { flash      *= 0.72; if (flash      < 0.01)  flash      = 0; }
-    if (superFlash > 0) { superFlash *= 0.78; if (superFlash < 0.01)  superFlash = 0; }
-    if (superDarken > 0){ superDarken *= 0.94; if (superDarken < 0.005) superDarken = 0; }
+    if (flash > 0)        { flash        *= 0.72; if (flash        < 0.01)  flash        = 0; }
+    if (superFlash > 0)   { superFlash   *= 0.78; if (superFlash   < 0.01)  superFlash   = 0; }
+    if (superDarken > 0)  { superDarken  *= 0.94; if (superDarken  < 0.005) superDarken  = 0; }
+    if (superTextTimer > 0) superTextTimer--;
   }
 
   // Reset all cinematic state — call at resetRound / newMatch so nothing bleeds across rounds.
   function resetCinematic() {
-    flash = 0; superFlash = 0; superDarken = 0;
+    flash = 0; superFlash = 0; superDarken = 0; superTextTimer = 0;
   }
 
   function shakeOffset() {
@@ -95,18 +99,39 @@
     ctx.restore();
   }
 
-  // Trigger the super-activation cinematic: vignette darken + white flash.
+  // Trigger the super-activation cinematic: vignette darken + white flash + SUPER! text.
   function triggerSuperCinematic() {
     superFlash = 1.0;
     superDarken = 0.72;
+    superTextTimer = SUPER_TEXT_DURATION;
   }
 
-  // Draw the super cinematic overlay: dark vignette bars + bright white flash.
+  // Spawn radial energy streak particles around Kate during the super (called per sim frame from main.js)
+  // x,y = fighter's world position (feet), facing = +1 / -1
+  function superStreak(x, y, facing) {
+    const n = 3;
+    for (let i = 0; i < n; i++) {
+      // Emit mostly forward / radial streaks, cyan-white accent colours
+      const ang = (Math.random() - 0.5) * Math.PI * 0.8 + (facing > 0 ? 0 : Math.PI);
+      const speed = 4 + Math.random() * 5;
+      const col = Math.random() < 0.6 ? '#5ad4ff' : '#ffffff';
+      sparks.push({
+        x: x + (Math.random() - 0.5) * 30,
+        y: y - 50 - Math.random() * 60, // spread up the body
+        vx: Math.cos(ang) * speed,
+        vy: Math.sin(ang) * speed - 1,
+        life: 8 + Math.random() * 7,
+        color: col,
+      });
+    }
+  }
+
+  // Draw the super cinematic overlay: dark vignette bars + bright white flash + SUPER! text.
   // Called from main render during the cinematic window (while superDarken or superFlash > 0).
   // cw/ch are the PHYSICAL canvas pixel dimensions so the fill covers the entire canvas
   // regardless of the zoomed/letterboxed transform that may be active.
   function drawSuperCinematic(ctx, cw, ch) {
-    if (superDarken <= 0 && superFlash <= 0) return;
+    if (superDarken <= 0 && superFlash <= 0 && superTextTimer <= 0) return;
     ctx.save();
     // Reset to identity so overlays cover the full physical canvas, not just the virtual rect.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -126,6 +151,35 @@
       ctx.globalAlpha = superFlash * 0.85;
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, cw, ch);
+    }
+    // "KATE SUPER!" text flash — appears right after the initial white flash clears
+    if (superTextTimer > 0) {
+      const progress = superTextTimer / SUPER_TEXT_DURATION; // 1→0
+      // fade: bright during first half, fade during second half
+      const alpha = progress < 0.5 ? Math.min(1, progress * 4) : progress * 2;
+      // Scale: pop in large, ease slightly smaller
+      const scale = 1 + (1 - progress) * 0.08;
+      ctx.globalAlpha = Math.min(1, alpha) * (1 - superFlash); // hidden during initial white flash
+      ctx.textAlign = 'center';
+      const cx = cw / 2, cy = ch / 2 - ch * 0.12;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+      // Outer glow / shadow
+      const fs = Math.round(ch * 0.12);
+      ctx.font = '900 ' + fs + 'px "Trebuchet MS",sans-serif';
+      ctx.fillStyle = '#000000';
+      ctx.globalAlpha = Math.min(1, alpha) * 0.65 * (1 - superFlash);
+      ctx.fillText('KATE SUPER!', 4, 4);
+      // Main text: cyan flash
+      ctx.globalAlpha = Math.min(1, alpha) * (1 - superFlash);
+      ctx.fillStyle = '#5ad4ff';
+      ctx.fillText('KATE SUPER!', 0, 0);
+      // Thin white outline for pop
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(1, fs * 0.04);
+      ctx.strokeText('KATE SUPER!', 0, 0);
+      ctx.restore();
     }
     ctx.restore();
   }
@@ -284,5 +338,5 @@
   }
 
   root.ArtFX = { hitSpark, step, stepCinematic, resetCinematic, shakeOffset, drawSparks, drawHUD, banner, drawIntro, drawFlash, cameraPunch, setCombo,
-    triggerSuperCinematic, drawSuperCinematic, superCinematicActive };
+    triggerSuperCinematic, drawSuperCinematic, superCinematicActive, superStreak };
 })(window);
